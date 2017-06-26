@@ -1,0 +1,60 @@
+# This YAML file describes your package. Stack will automatically generate a
+# Cabal file when you run `stack build`. See the hpack website for help with
+# this file: <https://github.com/sol/hpack>.
+benchmarks:
+  vapor-trail-benchmarks:
+    dependencies:
+    - base
+    - vapor-trail
+    - criterion
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: benchmark
+category: Other
+description: vapor-trail is a new Haskeleton package.
+executables:
+  vapor-trail:
+    dependencies:
+    - base
+    - vapor-trail
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: executable
+extra-source-files:
+- CHANGELOG.md
+- LICENSE.md
+- package.yaml
+- README.md
+- stack.yaml
+ghc-options: -Wall
+github: githubuser/vapor-trail
+library:
+  dependencies:
+  - base
+  - bytestring
+  - split
+  source-dirs: library
+license: GPLv2
+maintainer: Author name here
+name: vapor-trail
+synopsis: A new Haskeleton package.
+tests:
+  vapor-trail-test-suite:
+    dependencies:
+    - base
+    - vapor-trail
+    - tasty
+    - tasty-hspec
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: test-suite
+version: '0.0.0'
