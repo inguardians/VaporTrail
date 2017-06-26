@@ -8,7 +8,7 @@ import Test.Tasty.Hspec
 
 main :: IO ()
 main = do
-    test <- testSpec "vapor-trail" spec
+    test <- testSpec "vaportrail" spec
     Test.Tasty.defaultMain test
 
 spec :: Spec

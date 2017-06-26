@@ -1,7 +1,7 @@
 # Change log
 
-vapor-trail uses [Semantic Versioning][].
+vaportrail uses [Semantic Versioning][].
 The change log is available through the [releases on GitHub][].
 
 [Semantic Versioning]: http://semver.org/spec/v2.0.0.html
-[releases on GitHub]: https://github.com/githubuser/vapor-trail/releases
+[releases on GitHub]: https://github.com/githubuser/vaportrail/releases

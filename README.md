@@ -1,4 +1,4 @@
-# [vapor-trail][]
+# [vaportrail][]
 
 Thanks for starting a project with Haskeleton! If you haven't heard of it
 before, I suggest reading the introductory blog post. You can find it here:
@@ -45,4 +45,4 @@ stack haddock
 
 Thanks again, and happy hacking!
 
-[vapor-trail]: https://github.com/githubuser/vapor-trail
+[vaportrail]: https://github.com/githubuser/vaportrail

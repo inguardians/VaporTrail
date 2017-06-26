@@ -2,10 +2,10 @@
 # Cabal file when you run `stack build`. See the hpack website for help with
 # this file: <https://github.com/sol/hpack>.
 benchmarks:
-  vapor-trail-benchmarks:
+  vaportrail-benchmarks:
     dependencies:
     - base
-    - vapor-trail
+    - vaportrail
     - criterion
     ghc-options:
     - -rtsopts
@@ -14,12 +14,12 @@ benchmarks:
     main: Main.hs
     source-dirs: benchmark
 category: Other
-description: vapor-trail is a new Haskeleton package.
+description: vaportrail is a new Haskeleton package.
 executables:
-  vapor-trail:
+  vaportrail:
     dependencies:
     - base
-    - vapor-trail
+    - vaportrail
     ghc-options:
     - -rtsopts
     - -threaded
@@ -33,7 +33,7 @@ extra-source-files:
 - README.md
 - stack.yaml
 ghc-options: -Wall
-github: githubuser/vapor-trail
+github: githubuser/vaportrail
 library:
   dependencies:
   - base
@@ -42,13 +42,13 @@ library:
   source-dirs: library
 license: GPLv2
 maintainer: Author name here
-name: vapor-trail
+name: vaportrail
 synopsis: A new Haskeleton package.
 tests:
-  vapor-trail-test-suite:
+  vaportrail-test-suite:
     dependencies:
     - base
-    - vapor-trail
+    - vaportrail
     - tasty
     - tasty-hspec
     ghc-options:

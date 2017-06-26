@@ -14,66 +14,37 @@ import Data.Maybe
 import Data.Semigroup
 import Data.Word
 import Debug.Trace
-
 import System.Environment
+import qualified VaporTrail.Filter.Basic as Filter.Basic
+import VaporTrail.Filter.Fourier
 
--- https://en.wikipedia.org/wiki/Low-pass_filter#Discrete-time_realization
-lowPass6db :: Floating a => a -> [a] -> [a]
-lowPass6db _ [] = []
-lowPass6db hz (x:xs) = scanl' f (x * a) xs
-  where
-    dt = 1 / fromIntegral sampleRate
-    rc = 1 / (2 * pi * hz)
-    a = dt / (dt + rc)
-    f acc x = acc + (x - acc) * a
+lowPass6db :: (Floating a) => a -> [a] -> [a]
+lowPass6db = Filter.Basic.lowPass6db sampleRate
 
--- https://en.wikipedia.org/wiki/High-pass_filter#Algorithmic_implementation
-highPass6db :: Floating a => a -> [a] -> [a]
-highPass6db _ [] = []
-highPass6db hz xs = scanl' f (head x) (zipWith subtract xs (tail xs))
-  where
-    dt = 1 / fromIntegral sampleRate
-    rc = 1 / (2 * pi * hz)
-    a = dt / (dt + rc)
-    f acc dx = a * (acc + dx)
+lowPass12db :: (Floating a) => a -> [a] -> [a]
+lowPass12db = Filter.Basic.lowPass12db sampleRate
 
-bandPass6db :: Floating a => a -> [a] -> [a]
-bandPass6db hz = highPass6db hz . lowPass6db hz
+lowPass24db :: (Floating a) => a -> [a] -> [a]
+lowPass24db = Filter.Basic.lowPass24db sampleRate
 
+highPass6db :: (Floating a) => a -> [a] -> [a]
+highPass6db = Filter.Basic.highPass6db sampleRate
 
--- Order 1 = 6db
--- Order 2 = 12db
--- Order 3 = 24db
--- etc...
-order :: Int -> (a -> a) -> a -> a
-order n f = appEndo (stimesMonoid (2 ^ (n - 1)) (Endo f))
+highPass12db :: (Floating a) => a -> [a] -> [a]
+highPass12db = Filter.Basic.highPass12db sampleRate
 
-lowPass :: Floating a => Int -> a -> [a] -> [a]
-lowPass n hz = order n (lowPass6db hz)
+highPass24db :: (Floating a) => a -> [a] -> [a]
+highPass24db = Filter.Basic.highPass24db sampleRate
 
-lowPass12db :: Floating a => a -> [a] -> [a]
-lowPass12db = lowPass 2
+bandPass6db :: (Floating a) => a -> [a] -> [a]
+bandPass6db = Filter.Basic.bandPass6db sampleRate
 
-lowPass24db :: Floating a => a -> [a] -> [a]
-lowPass24db = lowPass 3
+bandPass12db :: (Floating a) => a -> [a] -> [a]
+bandPass12db = Filter.Basic.bandPass12db sampleRate
 
-highPass :: Floating a => Int -> a -> [a] -> [a]
-highPass n hz = order n (highPass6db hz)
+bandPass24db :: (Floating a) => a -> [a] -> [a]
+bandPass24db = Filter.Basic.bandPass24db sampleRate
 
-highPass12db :: Floating a => a -> [a] -> [a]
-highPass12db = highPass 2
-
-highPass24db :: Floating a => a -> [a] -> [a]
-highPass24db = highPass 3
-
-bandPass :: Floating a => Int -> a -> [a] -> [a]
-bandPass n hz = order n (bandPass6db hz)
-
-bandPass12db :: Floating a => a -> [a] -> [a]
-bandPass12db = bandPass 2
-
-bandPass24db :: Floating a => a -> [a] -> [a]
-bandPass24db = bandPass 3
 
 data TWord = Sync | One | Zero | Empty deriving (Eq,Read,Show)
 
@@ -83,20 +54,9 @@ tAmp One = 3 / 5
 tAmp Zero = 2 / 5
 tAmp Empty = 1 / 5
 
-
 sampleRate = 48000
 
 dataRate = 2000
-
--- https://en.wikipedia.org/wiki/Goertzel_algorithm
-goertzel :: RealFloat a => a -> Int -> [a] -> Complex a
-goertzel bin dftSize samples = y !! dftSize
-  where
-    w0 = 2 * pi * (bin / fromIntegral dftSize)
-    e = exp 1
-    x = take dftSize samples ++ repeat 0
-    s = zipWith3 (\x s1 s2 -> x + 2 * cos w0 * s1 - s2) x (0 : s) (0 : 0 : s)
-    y = zipWith (\s s1 -> (s :+ 0) - e ** (0 :+ (-w0)) * (s1 :+ 0)) s (tail s)
 
 lockSignal :: RealFloat a => [a] -> [a]
 lockSignal xs = sigNorm
@@ -145,7 +105,7 @@ tToBit Empty = Nothing
 
 tToBits :: [TWord] -> [Bool]
 tToBits =
-  mapMaybe tToBit . concat . filter ((== tChunkSize) . length) . groupBy g
+  mapMaybe tToBit . concat . groupBy g
   where
     g x y = (x == Sync) == (y == Sync)
 
