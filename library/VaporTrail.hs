@@ -186,7 +186,7 @@ fskEncodePCM hz sr =
 
 fskEncodeTone :: Int -> Process TWord Builder
 fskEncodeTone hz =
-  let duration = fromIntegral $ 10 ^ 9 `div` hz `div` 2
+  let duration = fromIntegral $ 10 ^ (9 :: Int) `div` hz `div` 2
       excursion = 12000
       tones =
         construct . forever $ do
@@ -199,15 +199,6 @@ fskEncodeTone hz =
 fskEncodePCM48 = fskEncodePCM dataRate sampleRate
 
 fskEncodeTone48 = fskEncodeTone dataRate
-
-removeDCOffset :: [Float] -> [Float]
-removeDCOffset xs = map (subtract (mean xs)) xs
-
-mean :: [Float] -> Float
-mean xs = sum xs / fromIntegral (length xs)
-
-normalize xs = map (/ sf) xs
-  where sf = traceShowId . maximum $ map abs xs
 
 toPCMS16LE :: Process Float Builder
 toPCMS16LE =
