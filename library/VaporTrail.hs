@@ -113,7 +113,7 @@ lockSignal =
           x <- await
           yield (normalize x)
   in normalizedSignal <~
-     Filter.Basic.lowPass12db (fromIntegral dataRate) sampleRate <~
+     Filter.Basic.bandPass12db (fromIntegral dataRate) sampleRate <~
      lockedSignal
 
 -- Temporary until lockSignal becomes a Process
