@@ -5,49 +5,43 @@ import Data.Machine
 import Data.Machine.Group
 import Control.Monad
 
-data TWord = Sync | One | Zero | Empty deriving (Eq,Read,Show)
+data TWord = One | Zero | Empty deriving (Eq, Read, Show)
 
-tChunkSize :: Int
-tChunkSize = 256
+tRange :: TWord -> (Float, Float)
+tRange One = (2/3, 1.0)
+tRange Zero = (1/3, 2/3)
+tRange Empty = (0, 1/3)
 
-tAmp :: Fractional a => TWord -> a
-tAmp Sync = 5 / 5
-tAmp One = 3 / 5
-tAmp Zero = 2 / 5
-tAmp Empty = 0
+tAmp :: TWord -> Float
+tAmp w =
+  let (lo, hi) = tRange w
+  in (lo + hi) / 2
 
 tFromAmp :: Float -> TWord
 tFromAmp x
-  | x >= 0.8 = Sync
-  | x >= 0.5 = One
-  | x >= 0.1 = Zero
+  | x >= fst (tRange One) = One
+  | x >= fst (tRange Zero) = Zero
   | otherwise = Empty
 
 tToBit :: TWord -> Maybe Bool
-tToBit Sync = Nothing
+tToBit Empty = Nothing
 tToBit One = Just True
 tToBit Zero = Just False
-tToBit Empty = Nothing
 
 tToBits :: Process TWord Bool
 tToBits =
   construct . forever $ do
     word <- await
-    forM_ (tToBit word) yield
+    case tToBit word of
+      Just x -> yield x
+      _ -> return ()
 
 tFromBit :: Bool -> TWord
 tFromBit True = One
 tFromBit False = Zero
 
 tFromBits :: Process Bool TWord
-tFromBits =
-  construct $ do
-    replicateM_ 48000 (yield Sync) -- Header
-    forever $ do
-      replicateM_ 4 (yield Sync) -- Chunk header
-      replicateM_ tChunkSize $ do
-        bit <- await
-        yield (tFromBit bit)
+tFromBits = mapping tFromBit
 
 decode :: Process Float TWord
 decode =

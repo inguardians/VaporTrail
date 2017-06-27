@@ -10,7 +10,6 @@ import Data.Complex
 import Data.Foldable
 import Control.Category hiding ((.), id)
 
-
 sigStrength :: Float -> Int -> [Float] -> Float
 sigStrength hz sampleRate xs =
   let bin = hz / (fromIntegral sampleRate / fromIntegral dftSize)
@@ -23,21 +22,25 @@ lockChunk hz sampleRate = do
   c <- replicateM dftSize await
   return (c, sigStrength hz sampleRate c)
 
-acquireSignal :: Category k => Float -> Int -> Plan (k Float) o ()
+acquireSignal :: Category k => Float -> Int -> Plan (k Float) o [Float]
 acquireSignal hz sampleRate = do
-  (_, sigLevel) <- lockChunk hz sampleRate
-  when (sigLevel < 0.9) (acquireSignal hz sampleRate)
+  (chunk, sigLevel) <- lockChunk hz sampleRate
+  if sigLevel < 0.9
+    then acquireSignal hz sampleRate
+    else return chunk
 
 maintainLock :: Category k => Float -> Int -> Plan (k Float) o [Float]
 maintainLock hz sampleRate = do
   (chunk, sigLevel) <- lockChunk hz sampleRate
-  guard (sigLevel > 0.3)
-  return chunk
+  if sigLevel < 0.3
+    then acquireSignal hz sampleRate
+    else return chunk
 
 lockedSignal :: Float -> Int -> Process Float Float
 lockedSignal hz sampleRate =
   construct $ do
-    acquireSignal hz sampleRate
+    firstChunk <- acquireSignal hz sampleRate
+    mapM_ yield firstChunk
     forever $ do
       chunk <- maintainLock hz sampleRate
       mapM_ yield chunk
@@ -56,7 +59,6 @@ skipStartupNoise = replicateM_ (10 * dftSize) await
 
 normalizedSignal :: Process Float Float
 normalizedSignal = construct $ do
-  skipStartupNoise
   normalize <- calcSignalNormalizer
   forever $ do
     x <- await
