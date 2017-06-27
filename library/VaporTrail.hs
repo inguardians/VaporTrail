@@ -223,14 +223,12 @@ sourceByteString = unfold B.uncons
 
 fromPCMS16LE :: Process Word8 Float
 fromPCMS16LE =
-  let go = do
-        l <- await
-        h <- await
-        let lo = fromIntegral l :: Int16
-            hi = fromIntegral h :: Int16
-        yield (fromIntegral (lo + hi * 256) / 32767)
-        go
-  in construct go
+  construct . forever $ do
+    l <- await
+    h <- await
+    let lo = fromIntegral l :: Int16
+        hi = fromIntegral h :: Int16
+    yield (fromIntegral (lo + hi * 256) / 32767)
 
 
 bitsToBytes :: Process Bool Word8
