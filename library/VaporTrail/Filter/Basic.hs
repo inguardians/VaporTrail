@@ -16,6 +16,7 @@ module VaporTrail.Filter.Basic
 
 import Data.Machine
 import VaporTrail.Filter.Types
+import Data.Function
 
 -- https://en.wikipedia.org/wiki/Low-pass_filter#Discrete-time_realization
 lowPass6db :: HasSampleRate env => Float -> env -> Process Float Float
@@ -23,18 +24,28 @@ lowPass6db hz env =
   let dt = 1 / fromIntegral (getSampleRate env)
       rc = 1 / (2 * pi * hz)
       alpha = dt / (dt + rc)
-      step prev x = prev * (1 - alpha) + x
-  in scan1 step <~ mapping (\x -> x * alpha)
+      step prev = do
+        yield prev
+        x <- await
+        step (prev + alpha * (x - prev))
+  in construct $ do
+       x0 <- await
+       step (x0 * alpha)
 
 -- https://en.wikipedia.org/wiki/High-pass_filter#Algorithmic_implementation
 highPass6db :: HasSampleRate env => Float -> env -> Process Float Float
 highPass6db hz env =
   let dt = 1 / fromIntegral (getSampleRate env)
       rc = 1 / (2 * pi * hz)
-      alpha = dt / (dt + rc)
-      step prev dx = alpha * (prev + dx)
-      deltas = auto (unfoldMealy (\prev x -> (x - prev, x)) 0)
-  in scan1 step <~ deltas
+      alpha = rc / (rc + dt)
+      step prevY prevX = do
+        yield prevY
+        curX <- await
+        let dx = curX - prevX
+        step (alpha * (prevY + dx)) curX
+  in construct $ do
+       x0 <- await
+       step x0 x0
 
 bandPass6db :: HasSampleRate env => Float -> env -> Process Float Float
 bandPass6db hz env = highPass6db hz env <~ lowPass6db hz env
