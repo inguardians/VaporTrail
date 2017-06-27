@@ -39,6 +39,7 @@ library:
   - base
   - bytestring
   - split
+  - machines
   source-dirs: library
 license: GPLv2
 maintainer: Author name here

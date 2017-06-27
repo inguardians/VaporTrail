@@ -4,7 +4,7 @@ import Data.Complex
 
 -- https://en.wikipedia.org/wiki/Goertzel_algorithm
 -- TODO document and make clearer
-goertzel :: RealFloat a => a -> Int -> [a] -> Complex a
+goertzel :: Float -> Int -> [Float] -> Complex Float
 goertzel bin dftSize samples = y !! dftSize
   where
     w0 = 2 * pi * (bin / fromIntegral dftSize)
