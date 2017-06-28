@@ -7,34 +7,39 @@ import Data.Word
 import VaporTrail.Codec.Type
 
 clip :: Float -> Float
-clip x = min 1 (max (-1) x)
+clip sample = min 1 (max (-1) sample)
+
+toInt16 :: Float -> Int16
+toInt16 sample =
+  if sample < 0
+    then floor (32768 * clip sample)
+    else floor (32767 * clip sample)
+
+fromInt16 :: Int16 -> Float
+fromInt16 sample =
+  if sample < 0
+    then fromIntegral sample / 32768
+    else fromIntegral sample / 32767
+
+pcms16leEncode :: Process Float Word8
+pcms16leEncode =
+  repeatedly $ do
+    input <- await
+    let sample = toInt16 input
+        lo = fromIntegral (sample .&. 0xFF) :: Word8
+        hi = fromIntegral (shiftR sample 8 .&. 0xFF) :: Word8
+    yield lo
+    yield hi
+
+pcms16leDecode :: Process Word8 Float
+pcms16leDecode =
+  repeatedly $ do
+    l <- await
+    h <- await
+    let lo = fromIntegral l :: Int16
+        hi = fromIntegral h :: Int16
+        sample = lo .|. shiftL hi 8
+    yield (fromInt16 sample)
 
 pcms16le :: Codec Float Word8
-pcms16le =
-  Codec
-  { codecEnc =
-      let toInt16 :: Float -> Int16
-          toInt16 x =
-            if x < 0
-              then floor (32768 * clip x)
-              else floor (32767 * clip x)
-      in repeatedly $ do
-           x <- fmap toInt16 await
-           let lo = fromIntegral (x .&. 0xFF)
-               hi = fromIntegral (shiftR x 8 .&. 0xFF)
-           yield lo
-           yield hi
-  , codecDec =
-      let fromInt16 :: Int16 -> Float
-          fromInt16 x =
-            if x < 0
-              then fromIntegral x / 32768
-              else fromIntegral x / 32767
-      in repeatedly $ do
-           l <- await
-           h <- await
-           let lo = fromIntegral l :: Int16
-               hi = fromIntegral h :: Int16
-               x = lo .|. shiftL hi 8
-           yield (fromInt16 x)
-  }
+pcms16le = Codec {codecEnc = pcms16leEncode, codecDec = pcms16leDecode}
