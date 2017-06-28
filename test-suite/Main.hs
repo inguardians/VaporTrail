@@ -12,6 +12,4 @@ main = do
     Test.Tasty.defaultMain test
 
 spec :: Spec
-spec = parallel $ do
-    it "is trivially true" $ do
-        True `shouldBe` True
+spec = parallel (it "is trivially true" (True `shouldBe` True))

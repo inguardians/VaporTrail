@@ -28,9 +28,9 @@ lowPass6db hz env =
         yield prev
         x <- await
         step (prev + alpha * (x - prev))
-  in construct $ do
-       x0 <- await
-       step (x0 * alpha)
+  in construct
+       (do x0 <- await
+           step (x0 * alpha))
 
 -- https://en.wikipedia.org/wiki/High-pass_filter#Algorithmic_implementation
 highPass6db :: HasSampleRate env => Float -> env -> Process Float Float
@@ -43,9 +43,9 @@ highPass6db hz env =
         curX <- await
         let dx = curX - prevX
         step (alpha * (prevY + dx)) curX
-  in construct $ do
-       x0 <- await
-       step x0 x0
+  in construct
+       (do x0 <- await
+           step x0 x0)
 
 bandPass6db :: HasSampleRate env => Float -> env -> Process Float Float
 bandPass6db hz env = highPass6db hz env <~ lowPass6db hz env
