@@ -60,4 +60,4 @@ encode =
 
 
 ucode :: Codec Bool Float
-ucode = Codec {codecEnc = encode <~ tFromBits, codecDec = tToBits <~ decode}
+ucode = Codec {codecEnc = tFromBits ~> encode, codecDec = decode ~> tToBits}
