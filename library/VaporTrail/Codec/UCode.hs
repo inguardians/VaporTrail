@@ -47,8 +47,8 @@ decode =
   let notEmpty x = tFromAmp (abs x) /= Empty
       polarity x = x < 0
       eqPolarity x y = polarity x == polarity y
-  in mapping tFromAmp <~ groupingOn eqPolarity (largest <~ mapping abs) <~
-     filtered notEmpty
+  in filtered notEmpty ~> groupingOn eqPolarity (mappings abs ~> largest) ~>
+     mapping tFromAmp
 
 encode :: Process TWord Float
 encode =

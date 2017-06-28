@@ -35,29 +35,29 @@ maintainLock hz sampleRate = do
     then acquireSignal hz sampleRate
     else return chunk
 
-lockedSignal :: Float -> Int -> Process Float Float
-lockedSignal hz sampleRate =
+lockOn :: Float -> Int -> Process Float Float
+lockOn hz sampleRate =
   construct $ do
     firstChunk <- acquireSignal hz sampleRate
-    mapM_ yield firstChunk
+    forM_ firstChunk yield
     forever $ do
       chunk <- maintainLock hz sampleRate
-      mapM_ yield chunk
+      forM_ chunk yield
 
 calcSignalNormalizer :: Category k => Plan (k Float) Float (Float -> Float)
 calcSignalNormalizer = do
-  sample <- replicateM (10 * dftSize) await
-  let dco = sum sample / (dftSizeF * 10)
-      maxAmp = foldl' (\prev x -> max prev (abs (x - dco))) 0 sample
+  samples <- replicateM (10 * dftSize) await
+  let dco = sum samples / (dftSizeF * 10)
+      maxAmp = foldl' (\prev x -> max prev (abs (x - dco))) 0 samples
       normalize x = (x - dco) / maxAmp
-  mapM_ (yield . normalize) sample
+  forM_ samples (\sample -> yield (normalize sample))
   return normalize
 
 skipStartupNoise :: Category k => Plan (k Float) o ()
 skipStartupNoise = replicateM_ (10 * dftSize) await
 
-normalizedSignal :: Process Float Float
-normalizedSignal =
+normalizeSignal :: Process Float Float
+normalizeSignal =
   construct $ do
     normalize <- calcSignalNormalizer
     forever $ do
@@ -72,4 +72,4 @@ dftSizeF = fromIntegral dftSize
 
 lockSignal :: Int -> Int -> Process Float Float
 lockSignal dataRate sampleRate =
-  normalizedSignal <~ lockedSignal (fromIntegral dataRate) sampleRate
+  lockOn (fromIntegral dataRate) sampleRate ~> normalizeSignal

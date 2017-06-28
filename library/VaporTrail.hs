@@ -23,7 +23,7 @@ dataRate :: Int
 dataRate = 2000
 
 decodeSignal :: Process Float Bool
-decodeSignal = codecDec ucode <~ lockSignal dataRate sampleRate
+decodeSignal = lockSignal dataRate sampleRate ~> codecDec ucode
 
 encodePCM :: Int -> Int -> Process Bool Word8
 encodePCM hz sr =
@@ -32,7 +32,7 @@ encodePCM hz sr =
         repeatedly $ do
           x <- await
           replicateM_ duration (yield x)
-  in codecEnc pcms16le <~ extendSamples <~ codecEnc ucode
+  in codecEnc ucode ~> extendSamples ~> codecEnc pcms16le
 
 encodeTone :: Int -> Process Bool Builder
 encodeTone hz =
@@ -44,7 +44,7 @@ encodeTone hz =
           yield (doubleLE (float2Double (tone * excursion)))
           yield (word32LE duration)
           yield (word32LE 0)
-  in tones <~ codecEnc ucode
+  in codecEnc ucode ~> tones
 
 encodePCM48 :: Process Bool Word8
 encodePCM48 = encodePCM dataRate sampleRate
@@ -61,15 +61,18 @@ main = do
   case args of
     ["enc_pcm"] -> do
       input <- fmap sourceByteString B.getContents
-      let output = B.pack (run (encodePCM48 <~ codecEnc bitsLE <~ input))
+      let output = B.pack (run (input ~> codecEnc bitsLE ~> encodePCM48))
       B.putStr output
     ["enc"] -> do
       input <- fmap sourceByteString B.getContents
-      let output = fold (encodeTone48 <~ codecEnc bitsLE <~ input)
+      let output = fold (input ~> codecEnc bitsLE ~> encodeTone48)
       B.putStr (toLazyByteString output)
     ["dec"] -> do
-        input <- fmap sourceByteString B.getContents
-        let output = B.pack (run (codecDec bitsLE <~ decodeSignal <~ codecDec pcms16le <~ input))
-        B.putStr output
+      input <- fmap sourceByteString B.getContents
+      let output =
+            B.pack
+              (run
+                 (input ~> codecDec pcms16le ~> decodeSignal ~> codecDec bitsLE))
+      B.putStr output
     _ -> putStrLn "Usage: fsk <enc_pcm|enc|dec>"
       

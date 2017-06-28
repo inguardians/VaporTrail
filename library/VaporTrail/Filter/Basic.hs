@@ -47,7 +47,7 @@ highPass6db hz env =
        step x0 x0
 
 bandPass6db :: HasSampleRate env => Float -> env -> Process Float Float
-bandPass6db hz env = highPass6db hz env <~ lowPass6db hz env
+bandPass6db hz env = highPass6db hz env ~> lowPass6db hz env
 
 -- Order 1 = 6db
 -- Order 2 = 12db
@@ -55,7 +55,7 @@ bandPass6db hz env = highPass6db hz env <~ lowPass6db hz env
 -- etc...
 order :: Int -> Process Float Float -> Process Float Float
 order 0 f = f
-order n f = order (n - 1) f <~ order (n - 1) f
+order n f = order (n - 1) f ~> order (n - 1) f
 
 lowPass :: HasSampleRate env => Int -> Float -> env -> Process Float Float
 lowPass o hz env = order o (lowPass6db hz env)

@@ -35,7 +35,7 @@ fromChunks =
 -- it to work with chunks from the start. The second argument specifies
 -- the size of the output chunks
 liftProcChunked :: (Vector v0 a, Vector v1 b) => Process a b -> Int -> Process (v0 a) (v1 b)
-liftProcChunked p n = toChunks n <~ p <~ fromChunks
+liftProcChunked p n = fromChunks ~> p ~> toChunks n
 
 -- | Lifts a codec to operate on chunks. Less efficient than writing
 -- it to work with chunks from the start.
@@ -49,7 +49,7 @@ liftCodecChunked codec n =
 -- | Lowers a process to work on individual elements. The second argument
 -- specifies the size of chunks provided to the process
 lowerProcChunked :: (Vector v0 a, Vector v1 b) => Process (v0 a) (v1 b) -> Int -> Process a b
-lowerProcChunked p n = fromChunks <~ p <~ toChunks n
+lowerProcChunked p n = toChunks n ~> p ~> fromChunks
 
 lowerCodecChunked :: (Vector v0 a, Vector v1 b) => Codec (v0 a) (v1 b) -> Int -> Codec a b
 lowerCodecChunked codec n =
