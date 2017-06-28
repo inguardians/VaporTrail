@@ -29,11 +29,11 @@ tToBit Zero = Just False
 
 tToBits :: Process TWord Bool
 tToBits =
-  repeatedly
-    (do word <- await
-        case tToBit word of
-          Just x -> yield x
-          _ -> return ())
+  repeatedly $ do
+    word <- await
+    case tToBit word of
+      Just x -> yield x
+      _ -> return ()
 
 tFromBit :: Bool -> TWord
 tFromBit True = One
@@ -52,11 +52,11 @@ decode =
 
 encode :: Process TWord Float
 encode =
-  repeatedly
-    (do positive <- await
-        yield (tAmp positive)
-        negative <- await
-        yield (-(tAmp negative)))
+  repeatedly $ do
+    positive <- await
+    yield (tAmp positive)
+    negative <- await
+    yield (-(tAmp negative))
 
 
 ucode :: Codec Bool Float

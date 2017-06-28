@@ -21,15 +21,15 @@ data Codec a b = Codec
 
 toChunks :: Vector v a => Int -> Process a (v a)
 toChunks n =
-  repeatedly
-    (do xs <- replicateM n await
-        yield (Vector.fromListN n xs))
+  repeatedly $ do
+    xs <- replicateM n await
+    yield (Vector.fromListN n xs)
 
 fromChunks :: Vector v a => Process (v a) a
 fromChunks =
-  repeatedly
-    (do chunk <- await
-        Vector.forM_ chunk yield)
+  repeatedly $ do
+    chunk <- await
+    Vector.forM_ chunk yield
 
 -- | Lifts a process to operate on chunks. Less efficient than writing
 -- it to work with chunks from the start. The second argument specifies

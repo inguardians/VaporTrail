@@ -37,12 +37,12 @@ maintainLock hz sampleRate = do
 
 lockedSignal :: Float -> Int -> Process Float Float
 lockedSignal hz sampleRate =
-  construct
-    (do firstChunk <- acquireSignal hz sampleRate
-        mapM_ yield firstChunk
-        forever
-          (do chunk <- maintainLock hz sampleRate
-              mapM_ yield chunk))
+  construct $ do
+    firstChunk <- acquireSignal hz sampleRate
+    mapM_ yield firstChunk
+    forever $ do
+      chunk <- maintainLock hz sampleRate
+      mapM_ yield chunk
 
 calcSignalNormalizer :: Category k => Plan (k Float) Float (Float -> Float)
 calcSignalNormalizer = do
@@ -58,11 +58,11 @@ skipStartupNoise = replicateM_ (10 * dftSize) await
 
 normalizedSignal :: Process Float Float
 normalizedSignal =
-  construct
-    (do normalize <- calcSignalNormalizer
-        forever
-          (do x <- await
-              yield (normalize x)))
+  construct $ do
+    normalize <- calcSignalNormalizer
+    forever $ do
+      x <- await
+      yield (normalize x)
 
 dftSize :: Int
 dftSize = 192

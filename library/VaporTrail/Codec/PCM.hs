@@ -18,23 +18,23 @@ pcms16le =
             if x < 0
               then floor (32768 * clip x)
               else floor (32767 * clip x)
-      in repeatedly
-           (do x <- fmap toInt16 await
-               let lo = fromIntegral (x .&. 0xFF)
-                   hi = fromIntegral (shiftR x 8 .&. 0xFF)
-               yield lo
-               yield hi)
+      in repeatedly $ do
+           x <- fmap toInt16 await
+           let lo = fromIntegral (x .&. 0xFF)
+               hi = fromIntegral (shiftR x 8 .&. 0xFF)
+           yield lo
+           yield hi
   , codecDec =
       let fromInt16 :: Int16 -> Float
           fromInt16 x =
             if x < 0
               then fromIntegral x / 32768
               else fromIntegral x / 32767
-      in repeatedly
-           (do l <- await
-               h <- await
-               let lo = fromIntegral l :: Int16
-                   hi = fromIntegral h :: Int16
-                   x = lo .|. shiftL hi 8
-               yield (fromInt16 x))
+      in repeatedly $ do
+           l <- await
+           h <- await
+           let lo = fromIntegral l :: Int16
+               hi = fromIntegral h :: Int16
+               x = lo .|. shiftL hi 8
+           yield (fromInt16 x)
   }

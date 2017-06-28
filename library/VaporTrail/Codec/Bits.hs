@@ -20,9 +20,9 @@ toBits :: forall b. FiniteBits b => Endianness -> Process b Bool
 toBits endian =
   let numBits = finiteBitSize (zeroBits :: b)
       yieldBit x n = yield (testBit x (bitIndex endian numBits n))
-  in repeatedly
-       (do x <- await
-           forM_ [0 .. numBits - 1] (yieldBit x))
+  in repeatedly $ do
+       x <- await
+       forM_ [0 .. numBits - 1] (yieldBit x)
   
 fromBits :: forall b. FiniteBits b => Endianness -> Process Bool b
 fromBits endian =
@@ -32,9 +32,9 @@ fromBits endian =
       awaitBit x n = do
         b <- await
         return (putBit x n b)
-  in repeatedly
-       (do x <- foldM awaitBit zeroBits [0 .. numBits - 1]
-           yield x)
+  in repeatedly $ do
+       x <- foldM awaitBit zeroBits [0 .. numBits - 1]
+       yield x
       
 bits :: FiniteBits b => Endianness -> Codec b Bool
 bits endian = Codec {codecEnc = toBits endian, codecDec = fromBits endian}

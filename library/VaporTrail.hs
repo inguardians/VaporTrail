@@ -29,9 +29,9 @@ encodePCM :: Int -> Int -> Process Bool Word8
 encodePCM hz sr =
   let duration = sr `div` hz `div` 2
       extendSamples =
-        repeatedly
-          (do x <- await
-              replicateM_ duration (yield x))
+        repeatedly $ do
+          x <- await
+          replicateM_ duration (yield x)
   in codecEnc pcms16le <~ extendSamples <~ codecEnc ucode
 
 encodeTone :: Int -> Process Bool Builder
@@ -39,11 +39,11 @@ encodeTone hz =
   let duration = fromIntegral (10 ^ (9 :: Int) `div` hz `div` 2)
       excursion = 12000
       tones =
-        repeatedly
-          (do tone <- await
-              yield (doubleLE (float2Double (tone * excursion)))
-              yield (word32LE duration)
-              yield (word32LE 0))
+        repeatedly $ do
+          tone <- await
+          yield (doubleLE (float2Double (tone * excursion)))
+          yield (word32LE duration)
+          yield (word32LE 0)
   in tones <~ codecEnc ucode
 
 encodePCM48 :: Process Bool Word8
