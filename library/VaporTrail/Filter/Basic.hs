@@ -16,7 +16,6 @@ module VaporTrail.Filter.Basic
 
 import Data.Machine
 import VaporTrail.Filter.Types
-import Data.Function
 
 -- https://en.wikipedia.org/wiki/Low-pass_filter#Discrete-time_realization
 lowPass6db :: HasSampleRate env => Float -> env -> Process Float Float

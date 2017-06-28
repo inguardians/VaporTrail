@@ -3,7 +3,6 @@ module VaporTrail.Codec.UCode (ucode) where
 import VaporTrail.Codec.Type
 import Data.Machine
 import Data.Machine.Group
-import Control.Monad
 
 data TWord = One | Zero | Empty deriving (Eq, Read, Show)
 

@@ -3,8 +3,6 @@ module VaporTrail.Filter.Types
   ( HasSampleRate(..)
   ) where
 
-import Data.Machine
-
 class HasSampleRate a where
   getSampleRate :: a -> Int
 

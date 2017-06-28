@@ -1,6 +1,5 @@
 module VaporTrail.Codec.PCM (pcms16le) where
 
-import Control.Monad
 import Data.Bits
 import Data.Int
 import Data.Machine
