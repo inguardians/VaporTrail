@@ -78,5 +78,7 @@ dftSizeF = fromIntegral dftSize
 
 lockSignal :: Int -> Int -> Process Float Float
 lockSignal dataRate sampleRate =
-  lockOn (fromIntegral dataRate) sampleRate ~> normalizeSignal
+  lockOn (fromIntegral dataRate) sampleRate ~>
+  lowPass12db (fromIntegral dataRate * 2) sampleRate ~>
+  normalizeSignal
 {-# INLINABLE lockSignal #-}
