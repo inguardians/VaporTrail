@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 module VaporTrail (main) where
 
+import Control.Arrow
 import Control.Monad
 import Data.ByteString.Builder
 import Data.ByteString.Lazy (ByteString)
@@ -10,11 +11,12 @@ import Data.Machine hiding (fold, zipWith)
 import Data.Word
 import GHC.Float (float2Double)
 import System.Environment
-import VaporTrail.Filter.SignalLock
+import VaporTrail.Codec.Bits
+import VaporTrail.Codec.PCM
 import VaporTrail.Codec.Type
 import VaporTrail.Codec.UCode
-import VaporTrail.Codec.PCM
-import VaporTrail.Codec.Bits
+import VaporTrail.Codec.FEC
+import VaporTrail.Filter.SignalLock
 
 sampleRate :: Int
 sampleRate = 48000
@@ -22,21 +24,16 @@ sampleRate = 48000
 dataRate :: Int
 dataRate = 2000
 
-decodeSignal :: Process Float Bool
-decodeSignal = lockSignal dataRate sampleRate ~> codecDec ucode
+codecPcmUcode :: Codec Word8 Word8
+codecPcmUcode =
+  fec 16 32 >>>
+  bitsLE >>>
+  ucode sampleRate dataRate >>>
+  codecLmap echo (lockSignal dataRate sampleRate) pcms16le
 
-encodePCM :: Int -> Int -> Process Bool Word8
-encodePCM hz sr =
-  let duration = sr `div` hz `div` 2
-      extendSamples =
-        repeatedly $ do
-          x <- await
-          replicateM_ duration (yield x)
-  in codecEnc ucode ~> extendSamples ~> codecEnc pcms16le
-
-encodeTone :: Int -> Process Bool Builder
-encodeTone hz =
-  let duration = fromIntegral (10 ^ (9 :: Int) `div` hz `div` 2)
+encodeTone :: Process Word8 Builder
+encodeTone =
+  let duration = fromIntegral (10 ^ (9 :: Int) `div` dataRate `div` 2)
       excursion = 12000
       tones =
         repeatedly $ do
@@ -44,35 +41,28 @@ encodeTone hz =
           yield (doubleLE (float2Double (tone * excursion)))
           yield (word32LE duration)
           yield (word32LE 0)
-  in codecEnc ucode ~> tones
+  in codecEnc (fec 32 64 >>> bitsLE >>> ucode sampleRate dataRate) ~> tones
 
-encodePCM48 :: Process Bool Word8
-encodePCM48 = encodePCM dataRate sampleRate
-
-encodeTone48 :: Process Bool Builder
-encodeTone48 = encodeTone dataRate
 
 sourceByteString :: ByteString -> Source Word8
-sourceByteString = unfold B.uncons
+sourceByteString bs = source (B.unpack bs)
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
     ["enc_pcm"] -> do
-      input <- fmap sourceByteString B.getContents
-      let output = B.pack (run (input ~> codecEnc bitsLE ~> encodePCM48))
-      B.putStr output
+      input <- B.getContents
+      let output = fold (sourceByteString input ~> codecEnc codecPcmUcode ~> mapping word8)
+      B.putStr (toLazyByteString output)
     ["enc"] -> do
-      input <- fmap sourceByteString B.getContents
-      let output = fold (input ~> codecEnc bitsLE ~> encodeTone48)
+      input <- B.getContents
+      let output = fold (sourceByteString input ~> encodeTone)
       B.putStr (toLazyByteString output)
     ["dec"] -> do
-      input <- fmap sourceByteString B.getContents
-      let output =
-            B.pack
-              (run
-                 (input ~> codecDec pcms16le ~> decodeSignal ~> codecDec bitsLE))
+      input <- B.getContents
+      let decoder = codecDec codecPcmUcode
+      let output = B.pack (run (sourceByteString input ~> decoder))
       B.putStr output
     _ -> putStrLn "Usage: fsk <enc_pcm|enc|dec>"
       

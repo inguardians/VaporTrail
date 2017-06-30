@@ -8,18 +8,22 @@ import VaporTrail.Codec.Type
 
 clip :: Float -> Float
 clip sample = min 1 (max (-1) sample)
+{-# INLINABLE clip #-}
 
 toInt16 :: Float -> Int16
 toInt16 sample =
   if sample < 0
     then floor (32768 * clip sample)
     else floor (32767 * clip sample)
+{-# INLINABLE toInt16 #-}
+
 
 fromInt16 :: Int16 -> Float
 fromInt16 sample =
   if sample < 0
     then fromIntegral sample / 32768
     else fromIntegral sample / 32767
+{-# INLINABLE fromInt16 #-}
 
 pcms16leEncode :: Process Float Word8
 pcms16leEncode =
@@ -30,6 +34,7 @@ pcms16leEncode =
         hi = fromIntegral (shiftR sample 8 .&. 0xFF) :: Word8
     yield lo
     yield hi
+{-# INLINABLE pcms16leEncode #-}
 
 pcms16leDecode :: Process Word8 Float
 pcms16leDecode =
@@ -40,6 +45,9 @@ pcms16leDecode =
         hi = fromIntegral h :: Int16
         sample = lo .|. shiftL hi 8
     yield (fromInt16 sample)
+{-# INLINABLE pcms16leDecode #-}
+
 
 pcms16le :: Codec Float Word8
-pcms16le = Codec {codecEnc = pcms16leEncode, codecDec = pcms16leDecode}
+pcms16le = codec pcms16leEncode pcms16leDecode
+{-# INLINABLE pcms16le #-}

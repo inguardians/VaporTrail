@@ -5,21 +5,20 @@ import VaporTrail.Filter.Fourier
 import VaporTrail.Filter.Basic
 import Data.Machine
 import Control.Monad
-import Data.Complex
 import Data.Foldable
 import Control.Category hiding ((.), id)
 
 sigStrength :: Float -> Int -> [Float] -> Float
 sigStrength hz sampleRate xs =
-  let bin = hz / (fromIntegral sampleRate / fromIntegral dftSize)
-      s = magnitude (goertzel bin dftSize xs)
-      a = foldl' (\acc x -> acc + abs x) 0 xs / fromIntegral dftSize
-  in (s * 2) / fromIntegral dftSize / a
+  let bin = hz * (fromIntegral dftSize / fromIntegral sampleRate)
+  in goertzelPower bin dftSize xs
+{-# INLINABLE sigStrength #-}
 
 lockChunk :: Category k => Float -> Int -> Plan (k Float) o ([Float], Float)
 lockChunk hz sampleRate = do
   c <- replicateM dftSize await
   return (c, sigStrength hz sampleRate c)
+{-# INLINABLE lockChunk #-}
 
 acquireSignal :: Category k => Float -> Int -> Plan (k Float) o [Float]
 acquireSignal hz sampleRate = do
@@ -27,6 +26,7 @@ acquireSignal hz sampleRate = do
   if sigLevel < 0.9
     then acquireSignal hz sampleRate
     else return chunk
+{-# INLINABLE acquireSignal #-}
 
 maintainLock :: Category k => Float -> Int -> Plan (k Float) o [Float]
 maintainLock hz sampleRate = do
@@ -34,6 +34,7 @@ maintainLock hz sampleRate = do
   if sigLevel < 0.3
     then acquireSignal hz sampleRate
     else return chunk
+{-# INLINABLE maintainLock #-}
 
 lockOn :: Float -> Int -> Process Float Float
 lockOn hz sampleRate =
@@ -43,6 +44,7 @@ lockOn hz sampleRate =
     forever $ do
       chunk <- maintainLock hz sampleRate
       forM_ chunk yield
+{-# INLINABLE lockOn #-}
 
 calcSignalNormalizer :: Category k => Plan (k Float) Float (Float -> Float)
 calcSignalNormalizer = do
@@ -52,6 +54,7 @@ calcSignalNormalizer = do
       normalize x = (x - dco) / maxAmp
   forM_ samples (\sample -> yield (normalize sample))
   return normalize
+{-# INLINABLE calcSignalNormalizer #-}
 
 skipStartupNoise :: Category k => Plan (k Float) o ()
 skipStartupNoise = replicateM_ (10 * dftSize) await
@@ -63,13 +66,17 @@ normalizeSignal =
     forever $ do
       x <- await
       yield (normalize x)
+{-# INLINABLE normalizeSignal #-}
 
 dftSize :: Int
 dftSize = 192
+{-# INLINABLE dftSize #-}
 
 dftSizeF :: Float
 dftSizeF = fromIntegral dftSize
+{-# INLINABLE dftSizeF #-}
 
 lockSignal :: Int -> Int -> Process Float Float
 lockSignal dataRate sampleRate =
   lockOn (fromIntegral dataRate) sampleRate ~> normalizeSignal
+{-# INLINABLE lockSignal #-}

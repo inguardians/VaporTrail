@@ -41,6 +41,12 @@ library:
   - split
   - machines
   - vector
+  - linear
+  - random
+  - fec
+  - binary
+  - memory
+  - cryptonite
   source-dirs: library
 license: GPLv2
 maintainer: Author name here
