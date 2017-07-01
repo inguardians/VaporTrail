@@ -105,7 +105,6 @@ encodeChunks k n =
   in buffered (fromIntegral k) ~> construct (runEncoder 0)
 
 
--- TODO
 reassembleChunks :: Word8 -> Word8 -> Process FecChunk DataChunk
 reassembleChunks k n =
   let fecParams = FEC.fec (fromIntegral k) (fromIntegral n)
@@ -142,7 +141,6 @@ fecChunkSerialization =
      mapping (deserializeFecChunk dataSize . Lazy.pack) ~>
      flattened)
 
--- TODO
 fec :: Word8 -> Word8 -> Codec Word8 Word8
 fec k n =
   let dataChunks = codec toDataChunks fromDataChunks

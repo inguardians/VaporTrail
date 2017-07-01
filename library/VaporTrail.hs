@@ -33,15 +33,21 @@ codecPcmUcode =
 
 encodeTone :: Process Word8 Builder
 encodeTone =
-  let duration = fromIntegral (10 ^ (9 :: Int) `div` dataRate `div` 2)
+  let duration = fromIntegral (10 ^ (9 :: Int) `div` sampleRate)
       excursion = 12000
-      tones =
-        repeatedly $ do
-          tone <- await
-          yield (doubleLE (float2Double (tone * excursion)))
-          yield (word32LE duration)
-          yield (word32LE 0)
-  in codecEnc (fec 32 64 >>> bitsLE >>> ucode sampleRate dataRate) ~> tones
+      tones toneSamples prevTone = do
+        tone <- await
+        if (tone /= prevTone)
+          then do
+            yield (doubleLE (float2Double (prevTone * excursion)))
+            yield (word32LE (toneSamples * duration))
+            yield (word32LE 0)
+            tones 1 tone
+          else tones (toneSamples + 1) tone
+  in codecEnc (fec 32 64 >>> bitsLE >>> ucode sampleRate dataRate) ~>
+     (construct $ do
+        firstTone <- await
+        tones 1 firstTone)
 
 
 sourceByteString :: ByteString -> Source Word8

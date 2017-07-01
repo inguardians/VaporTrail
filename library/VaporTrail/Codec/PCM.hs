@@ -30,8 +30,8 @@ pcms16leEncode =
   repeatedly $ do
     input <- await
     let sample = toInt16 input
-        lo = fromIntegral (sample .&. 0xFF) :: Word8
-        hi = fromIntegral (shiftR sample 8 .&. 0xFF) :: Word8
+        lo = fromIntegral sample
+        hi = fromIntegral (shiftR sample 8)
     yield lo
     yield hi
 {-# INLINABLE pcms16leEncode #-}
@@ -41,9 +41,9 @@ pcms16leDecode =
   repeatedly $ do
     l <- await
     h <- await
-    let lo = fromIntegral l :: Int16
-        hi = fromIntegral h :: Int16
-        sample = lo .|. shiftL hi 8
+    let lo = fromIntegral l
+        hi = shiftL (fromIntegral h) 8
+        sample = lo .|. hi
     yield (fromInt16 sample)
 {-# INLINABLE pcms16leDecode #-}
 

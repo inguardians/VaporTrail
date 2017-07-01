@@ -36,6 +36,7 @@ maintainLock hz sampleRate = do
     else return chunk
 {-# INLINABLE maintainLock #-}
 
+
 lockOn :: Float -> Int -> Process Float Float
 lockOn hz sampleRate =
   construct $ do
