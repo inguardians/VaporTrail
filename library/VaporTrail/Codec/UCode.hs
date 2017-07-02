@@ -14,8 +14,8 @@ oneThreshold = 2/3
 {-# INLINABLE oneThreshold #-}
 
 bitAmp :: Bool -> Float
-bitAmp False = (zeroThreshold + oneThreshold) / 2
-bitAmp True = (oneThreshold + 1.0) / 2
+bitAmp False = 0.5
+bitAmp True = 1.0
 {-# INLINABLE bitAmp #-}
 
 decode :: [Float] -> [Bool]
