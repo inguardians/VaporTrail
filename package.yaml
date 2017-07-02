@@ -47,6 +47,8 @@ library:
   - binary
   - memory
   - cryptonite
+  - reflection
+  - lens
   source-dirs: library
 license: GPLv2
 maintainer: Author name here

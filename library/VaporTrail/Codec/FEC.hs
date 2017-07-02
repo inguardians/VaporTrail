@@ -4,14 +4,14 @@
 module VaporTrail.Codec.FEC (fec) where
 
 import qualified Codec.FEC as FEC
-import Control.Arrow
 import Control.Applicative
 import Control.Monad
-import Data.Machine hiding (zipWith)
-import Data.Machine.Group
 import Data.Word
 import VaporTrail.Codec.Type
 import Data.Semigroup
+import Data.List.Split
+import Data.List
+import Data.Maybe
 
 import qualified Data.ByteString as Strict
 import qualified Data.ByteString.Lazy as Lazy
@@ -19,6 +19,7 @@ import qualified Data.ByteString.Builder as Builder
 import qualified Data.Binary.Get as Binary
 import qualified Data.ByteArray as ByteArray
 import qualified Crypto.Hash as Crypto
+import Debug.Trace
 
 newtype DataChunk = DataChunk
   { getDataChunk :: Lazy.ByteString
@@ -89,61 +90,58 @@ deserializeFecChunk chunkSize input =
          then Just (FecChunk (fromIntegral chunkIndex) chunkMessage)
          else Nothing)
           
-encodeChunks :: Word8 -> Word8 -> Process DataChunk FecChunk
-encodeChunks k n =
+encodeChunks :: Word8 -> Word8 -> [DataChunk] -> [FecChunk]
+encodeChunks k n input =
   let fecParams = FEC.fec (fromIntegral k) (fromIntegral n)
-      runEncoder i = do
-        inChunks <- await
-        let paddedChunks =
-              take (fromIntegral k) (inChunks ++ repeat emptyDataChunk)
-            serializedChunks =
-              map (Lazy.toStrict . serializeDataChunk dataSize) paddedChunks
-            redundancyChunks = FEC.encode fecParams serializedChunks
-        forM_ (zipWith FecChunk [i ..] serializedChunks) yield
-        forM_ (zipWith FecChunk [(i + fromIntegral k) ..] redundancyChunks) yield
-        runEncoder (i + fromIntegral n)
-  in buffered (fromIntegral k) ~> construct (runEncoder 0)
+      padChunks xs = take (fromIntegral k) (xs <> repeat emptyDataChunk)
+      serialize = map (Lazy.toStrict . serializeDataChunk dataSize)
+      redundancy = FEC.encode fecParams
+      psi (i, xs) =
+        case splitAt (fromIntegral k) xs of
+          ([], _) -> Nothing
+          (h, t) ->
+            let serializedChunks = serialize (padChunks h)
+                redundancyChunks = redundancy serializedChunks
+                fecChunks =
+                  zipWith FecChunk [0 ..] (serializedChunks <> redundancyChunks)
+            in Just (fecChunks, (i + fromIntegral n, t))
+  in concat (unfoldr psi (0 :: Int, input))
 
-
-reassembleChunks :: Word8 -> Word8 -> Process FecChunk DataChunk
+reassembleChunks :: Word8 -> Word8 -> [FecChunk] -> [DataChunk]
 reassembleChunks k n =
   let fecParams = FEC.fec (fromIntegral k) (fromIntegral n)
       increasing x y =
         (mod (fecChunkIndex x) (fromIntegral n) <
          mod (fecChunkIndex y) (fromIntegral n))
-      takeChunks xs =
-        (do x <- await
-            let chunkTup = (fecChunkIndex x `mod` (fromIntegral n), fecChunkBytes x)
-            takeChunks (chunkTup : xs)) <|>
-        return xs
-      decoder =
-        construct $ do
-          inChunks <- fmap (take (fromIntegral k)) (takeChunks [])
-          if length inChunks /= fromIntegral k
-            then return ()
-            else forM_
-                   (FEC.decode fecParams inChunks)
-                   (yield . deserializeDataChunk . Lazy.fromStrict)
-  in groupingOn increasing decoder
+      unpackChunk (FecChunk idx bytes) = (idx `mod` (fromIntegral n), bytes)
+      reassemble xs =
+        case take (fromIntegral k) (map unpackChunk xs) of
+          inChunks
+            | length inChunks == fromIntegral k -> FEC.decode fecParams inChunks
+          _ -> []
+  in map (deserializeDataChunk . Lazy.fromStrict) .
+     foldMap reassemble . groupBy increasing
 
+toDataChunks :: [Word8] -> [DataChunk]
+toDataChunks = map (DataChunk . Lazy.pack) . chunksOf dataSize
 
-toDataChunks :: Process Word8 DataChunk
-toDataChunks = buffered dataSize ~> mapping (DataChunk . Lazy.pack)
+fromDataChunks :: [DataChunk] -> [Word8]
+fromDataChunks = foldMap (Lazy.unpack . getDataChunk)
 
-fromDataChunks :: Process DataChunk Word8
-fromDataChunks = mapping (Lazy.unpack . getDataChunk) ~> flattened
+toFecChunks :: [Word8] -> [FecChunk]
+toFecChunks =
+  mapMaybe (deserializeFecChunk dataSize . Lazy.pack) .
+  chunksOf (fecChunkSize dataSize)
 
-fecChunkSerialization :: Codec FecChunk Word8
-fecChunkSerialization =
-  codec
-    (mapping (Lazy.unpack . serializeFecChunk) ~> flattened)
-    (buffered (fecChunkSize dataSize) ~>
-     mapping (deserializeFecChunk dataSize . Lazy.pack) ~>
-     flattened)
+fromFecChunks :: [FecChunk] -> [Word8]
+fromFecChunks = foldMap (Lazy.unpack . serializeFecChunk)
 
-fec :: Word8 -> Word8 -> Codec Word8 Word8
+fecChunkSerialization :: Codec [FecChunk] [Word8]
+fecChunkSerialization = codec fromFecChunks toFecChunks
+
+fec :: Word8 -> Word8 -> Codec [Word8] [Word8]
 fec k n =
   let dataChunks = codec toDataChunks fromDataChunks
       fecChunks = codec (encodeChunks k n) (reassembleChunks k n)
-  in dataChunks >>> fecChunks >>> fecChunkSerialization
+  in dataChunks . fecChunks . fecChunkSerialization
 
