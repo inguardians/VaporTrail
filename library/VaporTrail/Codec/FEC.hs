@@ -4,22 +4,19 @@
 module VaporTrail.Codec.FEC (fec) where
 
 import qualified Codec.FEC as FEC
-import Control.Applicative
-import Control.Monad
-import Data.Word
-import VaporTrail.Codec.Type
-import Data.Semigroup
-import Data.List.Split
-import Data.List
-import Data.Maybe
-
-import qualified Data.ByteString as Strict
-import qualified Data.ByteString.Lazy as Lazy
-import qualified Data.ByteString.Builder as Builder
+import Control.Lens (Iso', iso)
+import qualified Crypto.Hash as Crypto
 import qualified Data.Binary.Get as Binary
 import qualified Data.ByteArray as ByteArray
-import qualified Crypto.Hash as Crypto
-import Debug.Trace
+import qualified Data.ByteString as Strict
+import qualified Data.ByteString.Builder as Builder
+import qualified Data.ByteString.Lazy as Lazy
+import Data.List
+import Data.List.Split
+import Data.Maybe
+import Data.Semigroup
+import Data.Word
+
 
 newtype DataChunk = DataChunk
   { getDataChunk :: Lazy.ByteString
@@ -136,12 +133,12 @@ toFecChunks =
 fromFecChunks :: [FecChunk] -> [Word8]
 fromFecChunks = foldMap (Lazy.unpack . serializeFecChunk)
 
-fecChunkSerialization :: Codec [FecChunk] [Word8]
-fecChunkSerialization = codec fromFecChunks toFecChunks
+fecChunkSerialization :: Iso' [FecChunk] [Word8]
+fecChunkSerialization = iso fromFecChunks toFecChunks
 
-fec :: Word8 -> Word8 -> Codec [Word8] [Word8]
+fec :: Word8 -> Word8 -> Iso' [Word8] [Word8]
 fec k n =
-  let dataChunks = codec toDataChunks fromDataChunks
-      fecChunks = codec (encodeChunks k n) (reassembleChunks k n)
+  let dataChunks = iso toDataChunks fromDataChunks
+      fecChunks = iso (encodeChunks k n) (reassembleChunks k n)
   in dataChunks . fecChunks . fecChunkSerialization
 

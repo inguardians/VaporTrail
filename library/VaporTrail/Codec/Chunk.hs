@@ -4,12 +4,12 @@ module VaporTrail.Codec.Chunk
   , chunkStrict
   ) where
 
+import Control.Lens (Iso', iso)
+import Data.Bifunctor (first)
 import qualified Data.ByteString as Strict
 import qualified Data.ByteString.Lazy as Lazy
-import Data.Word
-import VaporTrail.Codec.Type
-import Data.Bifunctor
 import Data.List
+import Data.Word
 
 toChunksLazy :: Int -> [Word8] -> [Lazy.ByteString]
 toChunksLazy chunkSize =
@@ -34,10 +34,10 @@ fromChunksStrict :: [Strict.ByteString] -> [Word8]
 fromChunksStrict = foldMap Strict.unpack
 {-# INLINABLE fromChunksStrict #-}
 
-chunkLazy :: Int -> Codec [Word8] [Lazy.ByteString]
-chunkLazy chunkSize = codec (toChunksLazy chunkSize) fromChunksLazy
+chunkLazy :: Int -> Iso' [Word8] [Lazy.ByteString]
+chunkLazy chunkSize = iso (toChunksLazy chunkSize) fromChunksLazy
 {-# INLINABLE chunkLazy #-}
 
-chunkStrict :: Int -> Codec [Word8] [Strict.ByteString]
-chunkStrict chunkSize = codec (toChunksStrict chunkSize) fromChunksStrict
+chunkStrict :: Int -> Iso' [Word8] [Strict.ByteString]
+chunkStrict chunkSize = iso (toChunksStrict chunkSize) fromChunksStrict
 {-# INLINABLE chunkStrict #-}

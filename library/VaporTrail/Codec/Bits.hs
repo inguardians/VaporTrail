@@ -2,10 +2,10 @@
 {-# LANGUAGE RankNTypes #-}
 module VaporTrail.Codec.Bits (Endianness(..), bits, bitsLE, bitsBE) where
 
+import Control.Lens (Iso', iso)
 import Data.Bits
-import Data.Semigroup
-import VaporTrail.Codec.Type
 import Data.List
+import Data.Semigroup
 
 data Endianness
   = LittleEndian
@@ -31,22 +31,22 @@ fromBits endian =
       putBit (x, n) True = (setBit x (bitIndex endian numBits n), n + 1)
       putBit (x, n) False = (x, n + 1)
       psi xs =
-        case splitAt numBits xs of
-          (h, t)
-            | length h == numBits ->
-              Just (fst (foldl' putBit (zeroBits, 0) h), t)
-          _ -> Nothing
+        let (h, t) = splitAt numBits xs
+            (y, len) = foldl' putBit (zeroBits, 0) h
+        in if len == numBits
+             then Just (y, t)
+             else Nothing
   in unfoldr psi
 {-# INLINABLE fromBits #-}
       
-bits :: FiniteBits b => Endianness -> Codec [b] [Bool]
-bits endian = codec (toBits endian) (fromBits endian)
+bits :: FiniteBits b => Endianness -> Iso' [b] [Bool]
+bits endian = iso (toBits endian) (fromBits endian)
 {-# INLINABLE bits #-}
 
-bitsBE :: FiniteBits b => Codec [b] [Bool]
+bitsBE :: FiniteBits b => Iso' [b] [Bool]
 bitsBE = bits BigEndian
 {-# INLINABLE bitsBE #-}
 
-bitsLE :: FiniteBits  b => Codec [b] [Bool]
+bitsLE :: FiniteBits  b => Iso' [b] [Bool]
 bitsLE = bits LittleEndian
 {-# INLINABLE bitsLE #-}

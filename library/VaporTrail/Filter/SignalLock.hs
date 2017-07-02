@@ -1,4 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
 module VaporTrail.Filter.SignalLock (lockSignal) where
 
 import VaporTrail.Filter.Fourier

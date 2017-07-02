@@ -1,4 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
 module VaporTrail.Filter.Types
   ( HasSampleRate(..)
   ) where

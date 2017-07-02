@@ -1,10 +1,9 @@
 {-# LANGUAGE RankNTypes #-}
 module VaporTrail.Codec.UCode (ucode) where
 
-import VaporTrail.Codec.Type
-import Data.Semigroup
 import Data.List
-import Debug.Trace
+import Data.Semigroup
+import Control.Lens (iso, Iso')
 
 zeroThreshold :: Float
 zeroThreshold = 1/3
@@ -37,6 +36,6 @@ encode sampleRate dataRate =
   in snd . foldr phi (1, [])
 {-# INLINABLE encode #-}
 
-ucode :: Int -> Int -> Codec [Bool] [Float]
-ucode sampleRate dataRate = codec (encode sampleRate dataRate) decode
+ucode :: Int -> Int -> Iso' [Bool] [Float]
+ucode sampleRate dataRate = iso (encode sampleRate dataRate) decode
 {-# INLINABLE ucode #-}

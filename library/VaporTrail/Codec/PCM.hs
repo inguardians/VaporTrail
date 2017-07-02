@@ -1,10 +1,10 @@
 module VaporTrail.Codec.PCM (pcms16le) where
 
+import Control.Lens (Iso', iso)
 import Data.Bits
 import Data.Int
-import Data.Word
 import Data.List
-import VaporTrail.Codec.Type
+import Data.Word
 
 clip :: Float -> Float
 clip sample = min 1 (max (-1) sample)
@@ -47,6 +47,6 @@ pcms16leDecode =
 {-# INLINABLE pcms16leDecode #-}
 
 
-pcms16le :: Codec [Float] [Word8]
-pcms16le = codec pcms16leEncode pcms16leDecode
+pcms16le :: Iso' [Float] [Word8]
+pcms16le = iso pcms16leEncode pcms16leDecode
 {-# INLINABLE pcms16le #-}
