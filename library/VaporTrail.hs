@@ -4,13 +4,16 @@ import Control.Lens
 import Data.ByteString.Builder
 import qualified Data.ByteString.Lazy as Lazy
 import Data.List
+import Data.List.Split
 import Data.Semigroup
 import Data.Word
+import Debug.Trace
 import GHC.Float (float2Double)
 import System.Environment
 import VaporTrail.Codec.Bits
 import VaporTrail.Codec.FEC
 import VaporTrail.Codec.PCM
+import VaporTrail.Codec.Packet
 import VaporTrail.Codec.UCode
 import VaporTrail.Filter.SignalLock
 
@@ -25,7 +28,15 @@ encodePcmUcode =
   fec 16 32 .
   bitsLE .
   ucode sampleRate dataRate .
-  iso id (lockSignal dataRate sampleRate) .
+  {-iso id traceShowId .-}
+  {-iso id (lockSignal dataRate sampleRate) .-}
+  pcms16le
+
+encodePcmPackets :: Iso' [Word8] [Word8]
+encodePcmPackets =
+  iso (map Packet . chunksOf 256) (foldMap packetData) .
+  packetStream .
+  ucode sampleRate dataRate .
   pcms16le
 
 encodeTone :: [Word8] -> Builder
@@ -46,7 +57,7 @@ main = do
   case args of
     ["enc_pcm"] -> do
       input <- Lazy.getContents
-      let output = Lazy.pack (view encodePcmUcode (Lazy.unpack input))
+      let output = Lazy.pack (view encodePcmPackets (Lazy.unpack input))
       Lazy.putStr output
     ["enc"] -> do
       input <- Lazy.getContents
@@ -54,7 +65,7 @@ main = do
       Lazy.putStr (toLazyByteString output)
     ["dec"] -> do
       input <- Lazy.getContents
-      let output = Lazy.pack (view (from encodePcmUcode) (Lazy.unpack input))
+      let output = Lazy.pack (view (from encodePcmPackets) (Lazy.unpack input))
       Lazy.putStr output
     _ -> putStrLn "Usage: fsk <enc_pcm|enc|dec>"
       

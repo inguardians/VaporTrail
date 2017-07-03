@@ -1,7 +1,10 @@
 {-# LANGUAGE RankNTypes #-}
--- | Forward error correction using the `fec` library, a haskell binding of 
+
+-- | Forward error correction using the `fec` library, a haskell binding of
 -- `zfec`
-module VaporTrail.Codec.FEC (fec) where
+module VaporTrail.Codec.FEC
+  ( fec
+  ) where
 
 import qualified Codec.FEC as FEC
 import Control.Lens (Iso', iso)
@@ -17,11 +20,9 @@ import Data.Maybe
 import Data.Semigroup
 import Data.Word
 
-
 newtype DataChunk = DataChunk
   { getDataChunk :: Lazy.ByteString
   } deriving (Eq, Read, Show)
-
 
 emptyDataChunk :: DataChunk
 emptyDataChunk = DataChunk Lazy.empty
@@ -72,21 +73,24 @@ serializeFecChunk fecChunk =
 
 deserializeFecChunk :: Int -> Lazy.ByteString -> Maybe FecChunk
 deserializeFecChunk chunkSize input =
-  flip Binary.runGet input $ do
-    chunkIndex <- Binary.lookAhead Binary.getInt32le
-    chunkIndexBytes <- Binary.getByteString 4
-    chunkMessage <- Binary.getByteString (dataChunkSize chunkSize)
-    chunkDigest <- Binary.getByteString (Crypto.hashDigestSize Crypto.SHA256)
-    let expectedDigest =
-          Crypto.hashlazy
-            (Lazy.append
-               (Lazy.fromStrict chunkIndexBytes)
-               (Lazy.fromStrict chunkMessage)) :: Crypto.Digest Crypto.SHA256
-    return
-      (if chunkDigest == ByteArray.convert expectedDigest
-         then Just (FecChunk (fromIntegral chunkIndex) chunkMessage)
-         else Nothing)
-          
+  case flip Binary.runGetOrFail input $ do
+         chunkIndex <- Binary.lookAhead Binary.getInt32le
+         chunkIndexBytes <- Binary.getByteString 4
+         chunkMessage <- Binary.getByteString (dataChunkSize chunkSize)
+         chunkDigest <-
+           Binary.getByteString (Crypto.hashDigestSize Crypto.SHA256)
+         let expectedDigest =
+               Crypto.hashlazy
+                 (Lazy.append
+                    (Lazy.fromStrict chunkIndexBytes)
+                    (Lazy.fromStrict chunkMessage)) :: Crypto.Digest Crypto.SHA256
+         return
+           (if chunkDigest == ByteArray.convert expectedDigest
+              then Just (FecChunk (fromIntegral chunkIndex) chunkMessage)
+              else Nothing) of
+    Left _ -> Nothing
+    Right (_, _, x) -> x
+
 encodeChunks :: Word8 -> Word8 -> [DataChunk] -> [FecChunk]
 encodeChunks k n input =
   let fecParams = FEC.fec (fromIntegral k) (fromIntegral n)
@@ -100,7 +104,7 @@ encodeChunks k n input =
             let serializedChunks = serialize (padChunks h)
                 redundancyChunks = redundancy serializedChunks
                 fecChunks =
-                  zipWith FecChunk [0 ..] (serializedChunks <> redundancyChunks)
+                  zipWith FecChunk [i ..] (serializedChunks <> redundancyChunks)
             in Just (fecChunks, (i + fromIntegral n, t))
   in concat (unfoldr psi (0 :: Int, input))
 
@@ -110,7 +114,7 @@ reassembleChunks k n =
       increasing x y =
         (mod (fecChunkIndex x) (fromIntegral n) <
          mod (fecChunkIndex y) (fromIntegral n))
-      unpackChunk (FecChunk idx bytes) = (idx `mod` (fromIntegral n), bytes)
+      unpackChunk (FecChunk idx bytes) = (idx `mod` fromIntegral n, bytes)
       reassemble xs =
         case take (fromIntegral k) (map unpackChunk xs) of
           inChunks
@@ -123,7 +127,15 @@ toDataChunks :: [Word8] -> [DataChunk]
 toDataChunks = map (DataChunk . Lazy.pack) . chunksOf dataSize
 
 fromDataChunks :: [DataChunk] -> [Word8]
-fromDataChunks = foldMap (Lazy.unpack . getDataChunk)
+fromDataChunks =
+  let psi [] = Nothing
+      psi (DataChunk x:xs) =
+        Just
+          ( Lazy.unpack x
+          , if fromIntegral (Lazy.length x) == dataSize
+              then xs
+              else [])
+  in concat . unfoldr psi
 
 toFecChunks :: [Word8] -> [FecChunk]
 toFecChunks =
@@ -140,5 +152,4 @@ fec :: Word8 -> Word8 -> Iso' [Word8] [Word8]
 fec k n =
   let dataChunks = iso toDataChunks fromDataChunks
       fecChunks = iso (encodeChunks k n) (reassembleChunks k n)
-  in dataChunks . fecChunks . fecChunkSerialization
-
+  in dataChunks . fecChunks . fecChunkSerialization . iso (++ replicate 64 0) id
