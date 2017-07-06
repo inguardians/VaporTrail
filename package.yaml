@@ -49,6 +49,7 @@ library:
   - cryptonite
   - reflection
   - lens
+  - ghc-prim
   source-dirs: library
 license: GPLv2
 maintainer: Author name here

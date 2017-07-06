@@ -3,6 +3,7 @@ module VaporTrail (main) where
 import Control.Lens
 import Data.ByteString.Builder
 import qualified Data.ByteString.Lazy as Lazy
+import qualified Data.ByteString as Strict
 import Data.List
 import Data.List.Split
 import Data.Semigroup
@@ -16,6 +17,11 @@ import VaporTrail.Codec.PCM
 import VaporTrail.Codec.Packet
 import VaporTrail.Codec.UCode
 import VaporTrail.Filter.SignalLock
+import VaporTrail.Filter.Compressor
+import VaporTrail.Filter.Basic
+import GHC.Prim (coerce)
+import System.Random
+import Data.Bits
 
 sampleRate :: Int
 sampleRate = 48000
@@ -23,20 +29,30 @@ sampleRate = 48000
 dataRate :: Int
 dataRate = 2000
 
-encodePcmUcode :: Iso' [Word8] [Word8]
-encodePcmUcode =
-  fec 16 32 .
-  bitsLE .
-  ucode sampleRate dataRate .
-  {-iso id traceShowId .-}
-  {-iso id (lockSignal dataRate sampleRate) .-}
-  pcms16le
+
+-- | Xor each data chunk with noise, using the chunk ID as the seed. The
+-- purpose of this is to get a more even distribution of ones and zeroes in
+-- the output stream, so the signal locker doesn't try to over-amplify the
+-- zeroes
+xorNoise :: Iso' [(Int, Strict.ByteString)] [(Int, Strict.ByteString)]
+xorNoise =
+  let f (n, bytes) =
+        let gen = mkStdGen n
+            noise = take (Strict.length bytes) (randoms gen)
+            output = Strict.pack (zipWith xor (Strict.unpack bytes) noise)
+        in (n, output)
+  in iso (map f) (map f)
+
+encodePackets :: Iso' [Word8] [Float]
+encodePackets = fec 16 32 . xorNoise . packetStream . ucode sampleRate dataRate
 
 encodePcmPackets :: Iso' [Word8] [Word8]
 encodePcmPackets =
-  iso (map Packet . chunksOf 256) (foldMap packetData) .
-  packetStream .
-  ucode sampleRate dataRate .
+  encodePackets .
+  iso
+    id
+    ((colimiter 1.0 (4000 / fromIntegral dataRate) 0 sampleRate) .
+     lowPass12db (fromIntegral dataRate * 4) sampleRate) .
   pcms16le
 
 encodeTone :: [Word8] -> Builder
@@ -49,7 +65,7 @@ encodeTone =
         word32LE (fromIntegral (length xs) * duration) <>
         word32LE 0
       tones = foldMap toTone . group
-  in tones . view (fec 32 64 . bitsLE . ucode sampleRate dataRate)
+  in tones . view encodePackets
 
 main :: IO ()
 main = do
@@ -66,6 +82,25 @@ main = do
     ["dec"] -> do
       input <- Lazy.getContents
       let output = Lazy.pack (view (from encodePcmPackets) (Lazy.unpack input))
+      Lazy.putStr output
+    ["tr"] -> do
+      input <- Lazy.getContents
+      let output =
+            Lazy.pack
+              (view
+                 (from pcms16le .
+                  iso
+                    (
+                     (colimiter
+                        1.0
+                        (4000 / fromIntegral dataRate)
+                        0
+                        {-(4000 / fromIntegral dataRate)-}
+                        sampleRate) .
+                     lowPass12db (fromIntegral dataRate * 4) sampleRate)
+                    id .
+                  pcms16le)
+                 (Lazy.unpack input))
       Lazy.putStr output
     _ -> putStrLn "Usage: fsk <enc_pcm|enc|dec>"
       

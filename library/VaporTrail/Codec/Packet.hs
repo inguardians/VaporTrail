@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
-module VaporTrail.Codec.Packet (Packet(..), packetStream) where
+module VaporTrail.Codec.Packet (Packet(..), packetStream, packetStreamPacket) where
 
 import Control.Lens (Iso', from, iso, view)
 import Control.Monad
@@ -15,6 +16,7 @@ import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as Lazy
 import Data.List
 import VaporTrail.Codec.Bits
+import GHC.Prim (coerce)
 
 newtype Packet a = Packet
   { packetData :: a
@@ -79,5 +81,13 @@ writePacketStream :: Binary a => [Packet a] -> [Bool]
 writePacketStream =
   view bitsBE . Lazy.unpack . Builder.toLazyByteString . foldMap writePacket
 
-packetStream :: Binary a => Iso' [Packet a] [Bool]
-packetStream = iso writePacketStream readPacketStream
+packetStreamPacket :: Binary a => Iso' [Packet a] [Bool]
+packetStreamPacket = iso writePacketStream readPacketStream
+
+packetStream ::
+     forall a. Binary a
+  => Iso' [a] [Bool]
+packetStream =
+  let coerceTo = coerce :: [a] -> [Packet a]
+      coerceFrom = coerce :: [Packet a] -> [a]
+  in iso coerceTo coerceFrom . packetStreamPacket
