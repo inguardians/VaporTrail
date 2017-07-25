@@ -66,18 +66,23 @@ encodeTone =
       tones = foldMap toTone . group
   in tones . view encodePackets
 
-putUnbuffered :: (Foreign.Storable a, Foldable t) => Handle -> t a -> IO ()
-putUnbuffered handle xs =
-  let withUnbuffered m = do
-        initialBufferMode <- hGetBuffering handle
-        hSetBuffering handle NoBuffering
-        result <- m
-        hSetBuffering handle initialBufferMode
-        return result
-      putStorable ptr x = do
+withUnbuffered :: Handle -> IO a -> IO a
+withUnbuffered handle m = do
+  initialBufferMode <- hGetBuffering handle
+  hSetBuffering handle NoBuffering
+  result <- m
+  hSetBuffering handle initialBufferMode
+  return result
+
+putRaw :: (Foreign.Storable a, Foldable t) => Handle -> t a -> IO ()
+putRaw handle xs =
+  let put ptr x = do
         Foreign.poke ptr x
         hPutBuf handle ptr (Foreign.sizeOf x)
-  in withUnbuffered (Foreign.alloca (\ptr -> mapM_ (putStorable ptr) xs))
+  in Foreign.alloca (\ptr -> mapM_ (put ptr) xs)
+
+putUnbuffered :: (Foreign.Storable a, Foldable t) => Handle -> t a -> IO ()
+putUnbuffered handle = withUnbuffered handle . putRaw handle
 
 main :: IO ()
 main = do
