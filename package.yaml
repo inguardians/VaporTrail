@@ -37,19 +37,17 @@ github: githubuser/vaportrail
 library:
   dependencies:
   - base
-  - bytestring
-  - split
-  - machines
-  - vector
-  - linear
-  - random
-  - fec
   - binary
-  - memory
+  - bytestring
   - cryptonite
-  - reflection
-  - lens
+  - fec
   - ghc-prim
+  - lens
+  - memory
+  - random
+  - reflection
+  - split
+  - vector
   source-dirs: library
 license: GPLv2
 maintainer: Author name here

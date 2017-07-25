@@ -27,9 +27,9 @@ goertzel bin dftSize samples =
         if n <= dftSize
           then finalize (step (n, total, s2, s1) 0)
           else (n, total, s2,  s1)
-      (_, total, s2final, s1final) = finalize (foldl' step (0, 0, 0, 0) samples)
+      (_, sampleSum, s2final, s1final) = finalize (foldl' step (0, 0, 0, 0) samples)
       y = (s1final :+ 0) - e ** (0 :+ (-w0)) * (s2final :+ 0)
-  in (total, y)
+  in (sampleSum, y)
 {-# INLINABLE goertzel #-}
 
 goertzelPower :: Foldable f => Float -> Int -> f Float -> Float

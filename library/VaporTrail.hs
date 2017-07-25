@@ -1,27 +1,26 @@
 module VaporTrail (main) where
 
 import Control.Lens
+import Data.Bits
+import qualified Data.ByteString as Strict
 import Data.ByteString.Builder
 import qualified Data.ByteString.Lazy as Lazy
-import qualified Data.ByteString as Strict
 import Data.List
-import Data.List.Split
 import Data.Semigroup
 import Data.Word
-import Debug.Trace
+import qualified Foreign.Marshal.Alloc as Foreign
+import qualified Foreign.Storable as Foreign
 import GHC.Float (float2Double)
 import System.Environment
-import VaporTrail.Codec.Bits
+import System.IO
+import System.Random
 import VaporTrail.Codec.FEC
 import VaporTrail.Codec.PCM
 import VaporTrail.Codec.Packet
 import VaporTrail.Codec.UCode
-import VaporTrail.Filter.SignalLock
-import VaporTrail.Filter.Compressor
 import VaporTrail.Filter.Basic
-import GHC.Prim (coerce)
-import System.Random
-import Data.Bits
+import VaporTrail.Filter.Compressor
+import VaporTrail.Filter.SignalLock
 
 sampleRate :: Int
 sampleRate = 48000
@@ -36,12 +35,12 @@ dataRate = 2000
 -- zeroes
 xorNoise :: Iso' [(Int, Strict.ByteString)] [(Int, Strict.ByteString)]
 xorNoise =
-  let f (n, bytes) =
+  let withChunkNoise (n, bytes) =
         let gen = mkStdGen n
             noise = take (Strict.length bytes) (randoms gen)
             output = Strict.pack (zipWith xor (Strict.unpack bytes) noise)
         in (n, output)
-  in iso (map f) (map f)
+  in iso (map withChunkNoise) (map withChunkNoise)
 
 encodePackets :: Iso' [Word8] [Float]
 encodePackets = fec 16 32 . xorNoise . packetStream . ucode sampleRate dataRate
@@ -67,6 +66,20 @@ encodeTone =
       tones = foldMap toTone . group
   in tones . view encodePackets
 
+putUnbuffered :: (Foreign.Storable a, Foldable t) => Handle -> t a -> IO ()
+putUnbuffered handle xs =
+  let withUnbuffered m = do
+        initialBufferMode <- hGetBuffering handle
+        hSetBuffering handle NoBuffering
+        result <- m
+        hSetBuffering handle initialBufferMode
+        return result
+      putStorable ptr x = do
+        Foreign.poke ptr x
+        hPutBuf handle ptr (Foreign.sizeOf x)
+  in withUnbuffered (Foreign.alloca (\ptr -> mapM_ (putStorable ptr) xs))
+
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -81,8 +94,8 @@ main = do
       Lazy.putStr (toLazyByteString output)
     ["dec"] -> do
       input <- Lazy.getContents
-      let output = Lazy.pack (view (from encodePcmPackets) (Lazy.unpack input))
-      Lazy.putStr output
+      let output = view (from encodePcmPackets) (Lazy.unpack input)
+      putUnbuffered stdout output
     ["tr"] -> do
       input <- Lazy.getContents
       let output =
@@ -90,8 +103,7 @@ main = do
               (view
                  (from pcms16le .
                   iso
-                    (
-                     (colimiter
+                    ((colimiter
                         1.0
                         (4000 / fromIntegral dataRate)
                         0

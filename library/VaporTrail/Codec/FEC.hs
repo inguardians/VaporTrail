@@ -8,22 +8,17 @@ module VaporTrail.Codec.FEC
 
 import qualified Codec.FEC as FEC
 import Control.Lens (Iso', iso)
-import qualified Crypto.Hash as Crypto
-import qualified Data.Binary.Get as Binary
-import qualified Data.Binary.Put as Binary
+import Control.Monad
 import qualified Data.Binary as Binary
 import Data.Binary (Binary)
-import qualified Data.ByteArray as ByteArray
+import qualified Data.Binary.Get as Binary
+import qualified Data.Binary.Put as Binary
 import qualified Data.ByteString as Strict
-import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as Lazy
 import Data.List
 import Data.List.Split
-import Data.Maybe
 import Data.Semigroup
 import Data.Word
-import Control.Monad
-
 
 dataSize :: Int
 dataSize = 128
