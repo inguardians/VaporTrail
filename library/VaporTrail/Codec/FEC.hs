@@ -89,15 +89,7 @@ toDataChunks :: [Word8] -> [DataChunk]
 toDataChunks = map (DataChunk . Lazy.pack) . chunksOf dataSize
 
 fromDataChunks :: [DataChunk] -> [Word8]
-fromDataChunks =
-  let psi [] = Nothing
-      psi (DataChunk x:xs) =
-        Just
-          ( Lazy.unpack x
-          , if fromIntegral (Lazy.length x) == dataSize
-              then xs
-              else [])
-  in concat . unfoldr psi
+fromDataChunks = concatMap (Lazy.unpack . getDataChunk)
 
 fec :: Word8 -> Word8 -> Iso' [Word8] [(Int, Strict.ByteString)]
 fec k n =
