@@ -79,7 +79,6 @@ putUnbuffered handle xs =
         hPutBuf handle ptr (Foreign.sizeOf x)
   in withUnbuffered (Foreign.alloca (\ptr -> mapM_ (putStorable ptr) xs))
 
-
 main :: IO ()
 main = do
   args <- getArgs
@@ -91,7 +90,7 @@ main = do
     ["enc"] -> do
       input <- Lazy.getContents
       let output = encodeTone (Lazy.unpack input)
-      Lazy.putStr (toLazyByteString output)
+      putUnbuffered stdout (Lazy.unpack (toLazyByteString output))
     ["dec"] -> do
       input <- Lazy.getContents
       let output = view (from encodePcmPackets) (Lazy.unpack input)
