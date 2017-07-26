@@ -48,6 +48,14 @@ library:
   - reflection
   - split
   - vector
+  - filepath
+  - directory
+  - async
+  - tar
+  - process
+  - fsnotify
+  - stm
+  - mtl
   source-dirs: library
 license: GPLv2
 maintainer: Author name here
