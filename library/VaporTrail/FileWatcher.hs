@@ -95,6 +95,4 @@ transmitDirectory frequency baseDir = do
         , envBaseDir = baseDir
         , envTransmitFrequency = frequency
         }
-  Async.race_
-    (runReaderT watch env)
-    (runReaderT handleEvents env)
+  runReaderT (watch *> handleEvents) env
