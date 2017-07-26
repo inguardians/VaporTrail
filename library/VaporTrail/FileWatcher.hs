@@ -98,4 +98,4 @@ transmitDirectory frequency baseDir = do
         , envBaseDir = baseDir
         , envTransmitFrequency = frequency
         }
-  watch
+  runReaderT watch env
