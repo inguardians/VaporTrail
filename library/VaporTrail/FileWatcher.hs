@@ -65,6 +65,7 @@ rpitxTransmit bytes = do
 transmitFiles :: [FilePath] -> ReaderT Env IO ()
 transmitFiles [] = return ()
 transmitFiles paths = do
+  putStrLn ("Transmitting files: " ++ show paths)
   baseDir <- asks envBaseDir
   let relPaths = fmap (FilePath.makeRelative baseDir) paths
   bytes <- liftIO (fmap Tar.write (Tar.pack baseDir relPaths))
@@ -83,7 +84,8 @@ watch = do
           mgr
           (envBaseDir env)
           eventFilter
-          (STM.atomically . writeTChan (envEventChan env))
+          (\evt ->
+             print evt *> (STM.atomically . writeTChan (envEventChan env)) evt)
   liftIO (FSNotify.withManager (void . doWatch))
 
 transmitDirectory :: Int -> FilePath -> IO ()
