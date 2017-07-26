@@ -65,7 +65,7 @@ rpitxTransmit bytes = do
 transmitFiles :: [FilePath] -> ReaderT Env IO ()
 transmitFiles [] = return ()
 transmitFiles paths = do
-  putStrLn ("Transmitting files: " ++ show paths)
+  liftIO (putStrLn ("Transmitting files: " ++ show paths))
   baseDir <- asks envBaseDir
   let relPaths = fmap (FilePath.makeRelative baseDir) paths
   bytes <- liftIO (fmap Tar.write (Tar.pack baseDir relPaths))
