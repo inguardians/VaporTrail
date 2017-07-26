@@ -54,6 +54,7 @@ rpitxTransmit bytes = do
   liftIO (Process.withCreateProcess createProc doProc)
 
 transmitFiles :: [FilePath] -> ReaderT Env IO ()
+transmitFiles [] = return ()
 transmitFiles paths = do
   baseDir <- asks envBaseDir
   let relPaths = fmap (FilePath.makeRelative baseDir) paths
