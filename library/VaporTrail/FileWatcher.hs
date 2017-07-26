@@ -43,9 +43,18 @@ rpitxTransmit bytes = do
   let cmd = "rpitx"
       args = ["-m", "RF", "-f", show freq, "-i", "/dev/stdin"]
       toneBytes = encodePacketsTone bytes
-      createProc = (Process.proc cmd args) {Process.std_in = Process.CreatePipe}
-      doProc (Just hin) _ _ procHandle = do
-        withUnbuffered hin (putRaw hin toneBytes)
+      createProc =
+        (Process.proc cmd args)
+        { Process.std_in = Process.CreatePipe
+        , Process.std_out = Process.CreatePipe
+        , Process.std_err = Process.CreatePipe
+        }
+      doProc (Just hin) (Just hout) (Just herr) procHandle = do
+        Async.race_
+          (Async.race_
+             (IO.hGetContents hout >>= putStr)
+             (IO.hGetContents herr >>= IO.hPutStr IO.stderr))
+          (withUnbuffered hin (putRaw hin toneBytes))
         void (Process.waitForProcess procHandle)
       doProc _ _ _ _ =
         IO.hPutStrLn
