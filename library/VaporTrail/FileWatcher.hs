@@ -86,7 +86,8 @@ watch = do
           eventFilter
           (\evt ->
              print evt *> (STM.atomically . writeTChan (envEventChan env)) evt)
-  liftIO (FSNotify.withManager (void . doWatch))
+  liftIO
+    (FSNotify.withManager (\mgr -> doWatch mgr *> runReaderT handleEvents env))
 
 transmitDirectory :: Int -> FilePath -> IO ()
 transmitDirectory frequency baseDir = do
@@ -97,4 +98,4 @@ transmitDirectory frequency baseDir = do
         , envBaseDir = baseDir
         , envTransmitFrequency = frequency
         }
-  runReaderT (watch *> handleEvents) env
+  watch
