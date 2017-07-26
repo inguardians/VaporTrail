@@ -49,13 +49,15 @@ rpitxTransmit bytes = do
         , Process.std_out = Process.CreatePipe
         , Process.std_err = Process.CreatePipe
         }
-      doProc (Just hin) (Just hout) (Just herr) procHandle = do
+      doProc (Just hin) (Just hout) (Just herr) procHandle =
         Async.race_
           (Async.race_
              (IO.hGetContents hout >>= putStr)
              (IO.hGetContents herr >>= IO.hPutStr IO.stderr))
-          (withUnbuffered hin (putRaw hin toneBytes))
-        void (Process.waitForProcess procHandle)
+          (do withUnbuffered hin (putRaw hin toneBytes)
+              IO.hFlush hin
+              IO.hClose hin
+              void (Process.waitForProcess procHandle))
       doProc _ _ _ _ =
         IO.hPutStrLn
           IO.stderr
