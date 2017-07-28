@@ -3,18 +3,43 @@ module VaporTrail where
 import System.Environment
 import System.IO
 import VaporTrail.Codec
+import VaporTrail.Codec.PCM
 import VaporTrail.FileWatcher
+import VaporTrail.Filter.Basic
+import VaporTrail.Filter.Compressor
+import Control.Lens
+import Control.Monad
+import qualified Data.ByteString.Lazy as Lazy
 
+sampleRate :: Int
+sampleRate = 48000
+
+dataRate :: Int
+dataRate = 2000
 
 main :: IO ()
 main = do
   args <- getArgs
-  hSetBuffering stdin NoBuffering
-  hSetBuffering stdout NoBuffering
   case args of
-    ["enc_pcm"] -> encodeThroughPipe encodePacketsPcm stdin stdout
-    ["enc"] -> encodeThroughPipe encodePacketsTone stdin stdout
-    ["dec"] -> encodeThroughPipe decodePacketsPcm stdin stdout
+    ["enc_pcm"] -> do
+      output <- fmap (encodePacketsPcm . (:[]) . Lazy.unpack) Lazy.getContents
+      Lazy.putStr (Lazy.pack output)
+    ["enc"] -> do
+      output <- fmap (encodePacketsTone . (:[]) . Lazy.unpack) Lazy.getContents
+      Lazy.putStr (Lazy.pack output)
+    ["dec"] -> do
+      output <- fmap (decodePacketsPcm . Lazy.unpack) Lazy.getContents
+      forM_ output $ \xs -> do
+        Lazy.putStr (Lazy.pack xs)
+        hFlush stdout
+    {-["tr"] ->-}
+      {-encodeThroughPipe-}
+        {-(view pcms16le .-}
+         {-((colimiter 1.0 (4000 / fromIntegral dataRate) 0 sampleRate) .-}
+          {-lowPass12db (fromIntegral dataRate * 4) sampleRate) .-}
+         {-view (from pcms16le))-}
+        {-stdin-}
+        {-stdout-}
     ["transmit", frequency, baseDir] ->
       transmitDirectory (read frequency) baseDir
     _ -> putStrLn "Usage: fsk <enc_pcm|enc|dec|transmit <frequency> <path>>"

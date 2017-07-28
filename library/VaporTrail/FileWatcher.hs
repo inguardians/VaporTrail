@@ -42,7 +42,7 @@ rpitxTransmit bytes = do
   freq <- asks envTransmitFrequency
   let cmd = "rpitx"
       args = ["-m", "RF", "-f", show freq, "-i", "/dev/stdin"]
-      toneBytes = encodePacketsTone bytes
+      toneBytes = encodePacketsTone [bytes]
       createProc =
         (Process.proc cmd args)
         { Process.std_in = Process.CreatePipe
@@ -54,7 +54,7 @@ rpitxTransmit bytes = do
           (Async.race_
              (IO.hGetContents hout >>= putStr)
              (IO.hGetContents herr >>= IO.hPutStr IO.stderr))
-          (do withUnbuffered hin (putRaw hin toneBytes)
+          (do Lazy.putStr (Lazy.pack toneBytes)
               IO.hFlush hin
               IO.hClose hin
               void (Process.waitForProcess procHandle))

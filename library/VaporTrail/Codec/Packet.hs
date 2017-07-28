@@ -16,7 +16,9 @@ import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Lazy as Lazy
 import Data.List
 import VaporTrail.Codec.Bits
+import VaporTrail.BinarySize
 import GHC.Prim (coerce)
+import Data.Proxy
 
 newtype Packet a = Packet
   { packetData :: a
@@ -34,6 +36,14 @@ packetHeader = "STRTDATA"
 
 packetFooter :: Lazy.ByteString
 packetFooter = "STOPDATA"
+
+packetOverhead :: Int
+packetOverhead = headerBytes + lengthBytes + checksumBytes + footerBytes
+  where
+    headerBytes = fromIntegral (Lazy.length packetHeader)
+    lengthBytes = 4
+    checksumBytes = packetChecksumLength
+    footerBytes = fromIntegral (Lazy.length packetFooter)
 
 instance Binary a => Binary (Packet a) where
   put pkt = do
@@ -57,6 +67,12 @@ instance Binary a => Binary (Packet a) where
     pktFooter <- Binary.getLazyByteString (Lazy.length packetFooter)
     when (pktFooter /= packetFooter) (fail "Incorrect packet footer")
     return (Packet pktData)
+
+instance BinarySize a => BinarySize (Packet a) where
+  binarySize x = binarySize (packetData x) + packetOverhead
+
+instance forall a. BinarySizeFixed a => BinarySizeFixed (Packet a) where
+  binarySizeFixed _ = (binarySizeFixed (Proxy :: Proxy a)) + packetOverhead
 
 readPacket :: Binary a => Lazy.ByteString -> Either String (Int, Packet a)
 readPacket bytes =
