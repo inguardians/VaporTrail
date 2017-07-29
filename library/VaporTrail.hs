@@ -10,6 +10,10 @@ import VaporTrail.Filter.Compressor
 import Control.Lens
 import Control.Monad
 import qualified Data.ByteString.Lazy as Lazy
+import qualified Data.ByteString as Strict
+import Control.Concurrent.Async
+import Control.Concurrent.STM
+import Data.List
 
 sampleRate :: Int
 sampleRate = 48000
@@ -22,15 +26,15 @@ main = do
   args <- getArgs
   case args of
     ["enc_pcm"] -> do
-      output <- fmap (encodePacketsPcm . (:[]) . Lazy.unpack) Lazy.getContents
+      output <- fmap (encodePacketsPcm . (: []) . Lazy.unpack) Lazy.getContents
       Lazy.putStr (Lazy.pack output)
     ["enc"] -> do
-      output <- fmap (encodePacketsTone . (:[]) . Lazy.unpack) Lazy.getContents
+      output <- fmap (encodePacketsTone . (: []) . Lazy.unpack) Lazy.getContents
       Lazy.putStr (Lazy.pack output)
     ["dec"] -> do
       output <- fmap (decodePacketsPcm . Lazy.unpack) Lazy.getContents
       forM_ output $ \xs -> do
-        Lazy.putStr (Lazy.pack xs)
+        Strict.putStr (Strict.pack xs)
         hFlush stdout
     {-["tr"] ->-}
       {-encodeThroughPipe-}

@@ -3,7 +3,7 @@ module VaporTrail.FileWatcher (transmitDirectory) where
 import qualified Codec.Archive.Tar as Tar
 import Control.Concurrent.Async as Async
 import qualified Control.Concurrent.STM as STM
-import Control.Concurrent.STM.TChan
+import Control.Concurrent.STM.TQueue
 import Control.Monad
 import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as Lazy
@@ -17,16 +17,16 @@ import VaporTrail.Codec
 import qualified System.IO as IO
 
 data Env = Env
-  { envEventChan :: TChan FSNotify.Event
+  { envEventQueue :: TQueue FSNotify.Event
   , envBaseDir :: FilePath
   , envTransmitFrequency :: Int
   }
 
-getNewChanges :: ReaderT Env IO [FilePath]
-getNewChanges = do
-  eventChan <- asks envEventChan
+getNewQueueges :: ReaderT Env IO [FilePath]
+getNewQueueges = do
+  eventQueue <- asks envEventQueue
   let readEvents = do
-        next <- tryReadTChan eventChan
+        next <- tryReadTQueue eventQueue
         case next of
           Nothing -> return []
           Just evt -> fmap (FSNotify.eventPath evt :) readEvents
@@ -35,7 +35,7 @@ getNewChanges = do
     filterM Directory.doesFileExist uniqueEvents
 
 handleEvents :: ReaderT Env IO ()
-handleEvents = forever $ getNewChanges >>= transmitFiles
+handleEvents = forever $ getNewQueueges >>= transmitFiles
 
 rpitxTransmit :: [Word8] -> ReaderT Env IO ()
 rpitxTransmit bytes = do
@@ -87,16 +87,16 @@ watch = do
           (envBaseDir env)
           eventFilter
           (\evt ->
-             print evt *> (STM.atomically . writeTChan (envEventChan env)) evt)
+             print evt *> (STM.atomically . writeTQueue (envEventQueue env)) evt)
   liftIO
     (FSNotify.withManager (\mgr -> doWatch mgr *> runReaderT handleEvents env))
 
 transmitDirectory :: Int -> FilePath -> IO ()
 transmitDirectory frequency baseDir = do
-  eventChan <- STM.atomically newTChan
+  eventQueue <- STM.atomically newTQueue
   let env =
         Env
-        { envEventChan = eventChan
+        { envEventQueue = eventQueue
         , envBaseDir = baseDir
         , envTransmitFrequency = frequency
         }
