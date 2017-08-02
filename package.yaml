@@ -14,7 +14,7 @@ benchmarks:
     main: Main.hs
     source-dirs: benchmark
 category: Other
-description: vaportrail is a new Haskeleton package.
+description: vaportrail is a tool for data transmission over FM with a Raspberry Pi and RTL_SDR
 executables:
   vaportrail:
     dependencies:
@@ -33,7 +33,7 @@ extra-source-files:
 - README.md
 - stack.yaml
 ghc-options: -Wall
-github: githubuser/vaportrail
+github: inguardians/vaportrail
 library:
   dependencies:
   - base
@@ -58,9 +58,9 @@ library:
   - mtl
   source-dirs: library
 license: GPLv2
-maintainer: Author name here
+maintainer: Galen Alderson
 name: vaportrail
-synopsis: A new Haskeleton package.
+synopsis: vaportrail is a tool for data transmission over FM with a Raspberry Pi and RTL_SDR
 tests:
   vaportrail-test-suite:
     dependencies:
@@ -74,4 +74,4 @@ tests:
     - -with-rtsopts=-N
     main: Main.hs
     source-dirs: test-suite
-version: '0.0.0'
+version: '0.1.0'

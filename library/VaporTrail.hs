@@ -46,5 +46,5 @@ main = do
         {-stdout-}
     ["transmit", frequency, baseDir] ->
       transmitDirectory (read frequency) baseDir
-    _ -> putStrLn "Usage: fsk <enc_pcm|enc|dec|transmit <frequency> <path>>"
+    _ -> putStrLn "Usage: vaportrail <enc_pcm|enc|dec|transmit <frequency> <path>>"
       
