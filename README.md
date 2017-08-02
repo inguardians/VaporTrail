@@ -1,29 +1,29 @@
-# Vaportrail
+# VaporTrail
 
-Vaportrail is a tool for data transmission over FM, using
+VaporTrail is a tool for data transmission over FM, using
 [RPITX](https://github.com/F5OEO/RPITX) to transmit from an out-of-the-box
 Raspberry Pi, and an [RTL-SDR](http://www.rtl-sdr.com/) to receive.
 Rudimentary block-based error correction is implemented using the
-[zfec](https://github.com/tahoe-lafs/zfec) project. Vaportrail currently
+[zfec](https://github.com/tahoe-lafs/zfec) project. VaporTrail currently
 transmits at 2000 bits per second using a bandwidth of roughly 31 KHz, and can
 likely work at higher data rates.
 
 <!-- TOC depthFrom:2 -->
 
-- [1. Building and Installing Vaportrail](#1-building-and-installing-vaportrail)
+- [1. Building and Installing VaporTrail](#1-building-and-installing-vaportrail)
   - [1.1. Install RPITX On Transmitter](#11-install-rpitx-on-transmitter)
   - [1.2. Install GQRX And socat On Receiver](#12-install-gqrx-and-socat-on-receiver)
     - [1.2.1. Mac](#121-mac)
     - [1.2.2. Ubuntu](#122-ubuntu)
     - [1.2.3. Arch Linux](#123-arch-linux)
     - [1.2.4. Everything Else](#124-everything-else)
-  - [1.3. Vaportrail Binaries](#13-vaportrail-binaries)
+  - [1.3. VaporTrail Binaries](#13-vaportrail-binaries)
   - [1.4. Building From Source](#14-building-from-source)
     - [1.4.1. Building on Raspberry Pi](#141-building-on-raspberry-pi)
-- [2. Using Vaportrail](#2-using-vaportrail)
+- [2. Using VaporTrail](#2-using-vaportrail)
   - [2.1. Transmitting From a Raspberry Pi with `tools/transmit.sh`](#21-transmitting-from-a-raspberry-pi-with-toolstransmitsh)
   - [2.2. Receiving With GQRX and `tools/receive.sh`](#22-receiving-with-gqrx-and-toolsreceivesh)
-  - [2.3. Using Vaportrail Directly](#23-using-vaportrail-directly)
+  - [2.3. Using VaporTrail Directly](#23-using-vaportrail-directly)
     - [2.3.1. Encode PCM Data](#231-encode-pcm-data)
     - [2.3.2. Encode RPITX RF Commands](#232-encode-rpitx-rf-commands)
     - [2.3.3. Decode PCM Data](#233-decode-pcm-data)
@@ -37,7 +37,7 @@ likely work at higher data rates.
 
 <!-- This TOC is updated using the Markdown TOC package in VSCode -->
 
-## 1. Building and Installing Vaportrail
+## 1. Building and Installing VaporTrail
 
 ### 1.1. Install RPITX On Transmitter
 
@@ -51,7 +51,7 @@ this automatically by installing to /usr/bin
 The current supported method of FM demodulation is to use GQRX, sending the
 output to a netcat or socat listener over UDP. This is a little janky, and
 could be made better by using `rtl_fm` instead, but in the meantime, you will
-need to install the `gqrx` tool before using Vaportrail.
+need to install the `gqrx` tool before using VaporTrail.
 
 The upside is, using GQRX makes it much easier to identify and isolate the
 signal before receiving due to its graphical interface.
@@ -84,11 +84,11 @@ installing GQRX.
 Consult your distribution's package repositories for socat installation.
 
 
-### 1.3. Vaportrail Binaries
+### 1.3. VaporTrail Binaries
 
-Compiling the libraries needed for Vaportrail can take quite a long time on a
+Compiling the libraries needed for VaporTrail can take quite a long time on a
 Raspberry Pi, so for your convenience we've included a [binary ARMv7 build in
-the Releases]().
+the Releases](https://github.com/inguardians/VaporTrail/releases).
 
 ### 1.4. Building From Source
 
@@ -128,7 +128,7 @@ dependencies as well. Our initial build took a little over two hours.
 Re-compiling after changing the source code is significantly faster, in the
 order of one to two minutes.
 
-## 2. Using Vaportrail
+## 2. Using VaporTrail
 
 ### 2.1. Transmitting From a Raspberry Pi with `tools/transmit.sh`
 
@@ -187,7 +187,7 @@ Once the transmission has completed, press enter to decode it.
 If all data was received successfully, you should see the same data you
 transmitted.
 
-### 2.3. Using Vaportrail Directly
+### 2.3. Using VaporTrail Directly
 
 This section documents how to use the `vaportrail` command directly, for if you
 want to skip the wrapper scripts and do it yourself.
@@ -223,19 +223,19 @@ here:
 
     vaportrail dec
 
-Read a raw PCM audio stream and decode a Vaportrail-encoded signal. The input
+Read a raw PCM audio stream and decode a VaporTrail-encoded signal. The input
 stream must consist of a single 48000Hz channel of 16-bit signed little-endian
 samples.
 
 ## 3. Current Limitations
 
-There's a few limitations in Vaportrail which are definitely solvable, but have
+There's a few limitations in VaporTrail which are definitely solvable, but have
 not been fixed yet. These are listed below.
 
 ### 3.1. GQRX Can't Be Used Programmatically
 
 I (unknownln) have never interfaced with the RTL-SDR programmatically, so I
-have no idea how to do it yet. Since Vaportrail currently relies on the
+have no idea how to do it yet. Since VaporTrail currently relies on the
 graphical GQRX program to handle demodulation the incoming FM signal, the
 Raspberry Pi can't decode yet, at least not without installing a GUI. I'll be
 looking into this soon, to support repeaters and two-way communication.
@@ -243,14 +243,14 @@ looking into this soon, to support repeaters and two-way communication.
 In the mean time, feel free to experiment with the standard RTL-SDR command
 line tool for FM demodulation, `rtl_fm`. It *should* be possible to use this in
 place of GQRX. That said, `rtl_fm`'s FM demodulation isn't as good as GQRX's,
-so Vaportrail may not be able to decode the output. If I test this method and
+so VaporTrail may not be able to decode the output. If I test this method and
 get it working I'll update this README with details.
 
 ### 3.2. No Raspberry Pi Zero Support
 
-As of writing this README, Vaportrail can only encode data on a Raspberry Pi 2
+As of writing this README, VaporTrail can only encode data on a Raspberry Pi 2
 or Raspberry Pi 3. An encoder will have to be written in another language to
-implement Vaportrail on a Raspberry Pi Zero or B+, because they use ARMv6
+implement VaporTrail on a Raspberry Pi Zero or B+, because they use ARMv6
 processors, which Haskell does not support. Luckily, the encode process is much
 simpler than the decode process, so rewriting it should not be terribly
 difficult. The primary challenge will be the use of a random number generator
@@ -261,7 +261,7 @@ input seed.
 
 ### 3.3. No Streaming Decoder
 
-Additionally, Vaportrail can not yet decode a stream of data, meaning a
+Additionally, VaporTrail can not yet decode a stream of data, meaning a
 received transmission must be written entirely to disk before it can be
 decoded. *Note by unknownln: I'm currently working on a solution to this, and I'll
 hopefully have it implemented within a week or two of today, August 02, 2017.*
