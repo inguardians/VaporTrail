@@ -28,7 +28,8 @@ executables:
     source-dirs: executable
 extra-source-files:
 - CHANGELOG.md
-- LICENSE.md
+- LICENSE.txt
+- GPLv2.txt
 - package.yaml
 - README.md
 - stack.yaml
