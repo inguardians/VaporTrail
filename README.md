@@ -84,7 +84,7 @@ installing GQRX.
 Consult your distribution's package repositories for socat installation.
 
 
-### 1.3. VaporTrail Binaries
+### 1.3. VaporTrail Raspberry Pi Binaries
 
 Compiling the libraries needed for VaporTrail can take quite a long time on a
 Raspberry Pi, so for your convenience we've included a [binary ARMv7 build in
