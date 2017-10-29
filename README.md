@@ -1,5 +1,11 @@
 # VaporTrail
 
+## !! Important for Mac Users !!
+
+`receive.sh` currently does not work on macOS, because I used a mktemp flag
+which macOS doesn't support. I will be fixing this soon, but in the mean time
+please use a Linux VM.
+
 VaporTrail is a tool for data transmission over FM, using
 [RPITX](https://github.com/F5OEO/RPITX) to transmit from an out-of-the-box
 Raspberry Pi, and an [RTL-SDR](http://www.rtl-sdr.com/) to receive.
